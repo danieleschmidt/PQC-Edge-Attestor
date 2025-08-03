@@ -1,0 +1,143 @@
+{
+  "name": "pqc-edge-attestor",
+  "version": "1.0.0",
+  "description": "Post-quantum cryptographic framework for IoT edge device attestation",
+  "main": "index.js",
+  "scripts": {
+    "build": "make build",
+    "build:release": "make release",
+    "test": "make test",
+    "test:coverage": "cd build/debug && ctest --verbose && gcov src/**/*.c",
+    "lint": "make lint",
+    "format": "make format",
+    "clean": "make clean",
+    "docs": "doxygen Doxyfile",
+    "docs:serve": "python3 -m http.server 8000 -d docs/_build/html",
+    "security:audit": "npm audit && python3 -m pip check",
+    "security:scan": "cppcheck --enable=all src/ && bandit -r tools/",
+    "dev": "nodemon --watch src --ext c,h --exec 'make build && make test'",
+    "hardware:flash": "make flash",
+    "hardware:debug": "make debug",
+    "emulate": "qemu-system-arm -M stm32vldiscovery -kernel build/release/firmware.elf -nographic",
+    "tpm:start": "swtpm socket --tpmstate dir=/tmp/tpm --ctrl type=tcp,port=2321 --server type=tcp,port=2322 --daemon",
+    "tpm:reset": "swtpm_ioctl --tcp 127.0.0.1:2321 -i",
+    "benchmark": "cd build/release && ./benchmark_runner",
+    "analyze": "cd build/debug && valgrind --tool=memcheck --leak-check=full ./test_runner",
+    "coverage:html": "cd build/debug && gcov src/**/*.c && lcov --capture --directory . --output-file coverage.info && genhtml coverage.info --output-directory coverage_html",
+    "release": "semantic-release",
+    "precommit": "npm run format && npm run lint && npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/terragonlabs/PQC-Edge-Attestor.git"
+  },
+  "keywords": [
+    "post-quantum-cryptography",
+    "iot-security",
+    "attestation",
+    "tpm",
+    "embedded",
+    "kyber",
+    "dilithium",
+    "quantum-resistant",
+    "smart-meter",
+    "ev-charger"
+  ],
+  "author": {
+    "name": "Terragon Labs",
+    "email": "dev@terragonlabs.com",
+    "url": "https://terragonlabs.com"
+  },
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/terragonlabs/PQC-Edge-Attestor/issues"
+  },
+  "homepage": "https://github.com/terragonlabs/PQC-Edge-Attestor#readme",
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^10.0.4",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^9.2.1",
+    "@semantic-release/release-notes-generator": "^11.0.7",
+    "conventional-changelog-cli": "^4.1.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "nodemon": "^3.0.2",
+    "semantic-release": "^21.1.2"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5",
+    "morgan": "^1.10.0",
+    "compression": "^1.7.4",
+    "rate-limiter-flexible": "^3.0.7",
+    "joi": "^17.11.0",
+    "winston": "^3.11.0",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "lint-staged": {
+    "*.{c,h}": [
+      "clang-format -i",
+      "cppcheck --enable=all --error-exitcode=1"
+    ],
+    "*.{js,json}": [
+      "prettier --write"
+    ],
+    "*.{md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "conventional-changelog-lint",
+      "pre-push": "npm run test"
+    }
+  },
+  "release": {
+    "branches": [
+      "main",
+      {
+        "name": "develop",
+        "prerelease": "beta"
+      }
+    ],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
+      "@semantic-release/github",
+      [
+        "@semantic-release/git",
+        {
+          "assets": [
+            "CHANGELOG.md",
+            "package.json"
+          ],
+          "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+        }
+      ]
+    ]
+  },
+  "config": {
+    "hardware": {
+      "target": "stm32l5",
+      "programmer": "openocd",
+      "interface": "stlink"
+    },
+    "testing": {
+      "timeout": 30000,
+      "parallel": true,
+      "coverage_threshold": 90
+    },
+    "security": {
+      "audit_level": "high",
+      "scan_on_build": true
+    }
+  }
+}
