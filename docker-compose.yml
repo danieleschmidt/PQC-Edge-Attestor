@@ -1,0 +1,379 @@
+# Docker Compose configuration for PQC-Edge-Attestor
+# Provides complete development and testing environment
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Main Application Service
+  # =============================================================================
+  pqc-attestor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+      args:
+        - NODE_ENV=development
+        - BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+        - VCS_REF=$(git rev-parse --short HEAD)
+    container_name: pqc-attestor-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "9229:9229"  # Node.js debugging
+      - "9090:9090"  # Metrics
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - DB_HOST=postgres
+      - DB_NAME=pqc_attestor_dev
+      - DB_USER=postgres
+      - DB_PASSWORD=devpassword
+      - REDIS_HOST=redis
+      - TPM_USE_SIMULATOR=true
+      - TPM_SIMULATOR_PORT=2321
+      - METRICS_ENABLED=true
+      - DEBUG=pqc-*
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - ./logs:/app/logs
+      - ./temp:/app/temp
+      - ./certs:/app/certs:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      tpm-simulator:
+        condition: service_started
+    networks:
+      - pqc-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # =============================================================================
+  # PostgreSQL Database
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: pqc-attestor-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=pqc_attestor_dev
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=devpassword
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+      - ./database/backups:/backups
+    networks:
+      - pqc-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pqc_attestor_dev"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+
+  # =============================================================================
+  # Redis Cache
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: pqc-attestor-cache
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --auto-aof-rewrite-percentage 100
+      --auto-aof-rewrite-min-size 64mb
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --timeout 300
+      --tcp-keepalive 300
+      --save 900 1 300 10 60 10000
+    volumes:
+      - redis_data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - pqc-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.core.somaxconn=1024
+
+  # =============================================================================
+  # TPM Simulator
+  # =============================================================================
+  tpm-simulator:
+    image: tpm2software/tpm2-tss:latest
+    container_name: pqc-attestor-tpm
+    restart: unless-stopped
+    ports:
+      - "2321:2321"
+      - "2322:2322"
+    command: >
+      sh -c "
+        swtpm socket
+        --tpmstate dir=/tmp/tpm
+        --ctrl type=tcp,port=2321
+        --server type=tcp,port=2322
+        --flags not-need-init
+        --daemon
+      "
+    volumes:
+      - tpm_data:/tmp/tpm
+    networks:
+      - pqc-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # =============================================================================
+  # Monitoring Stack
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: pqc-attestor-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - pqc-network
+    depends_on:
+      - pqc-attestor
+    security_opt:
+      - no-new-privileges:true
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: pqc-attestor-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - pqc-network
+    depends_on:
+      - prometheus
+    security_opt:
+      - no-new-privileges:true
+
+  # =============================================================================
+  # Testing Services
+  # =============================================================================
+  test-postgres:
+    image: postgres:15-alpine
+    container_name: pqc-attestor-test-db
+    environment:
+      - POSTGRES_DB=pqc_attestor_test
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=testpassword
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+    networks:
+      - pqc-test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pqc_attestor_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+    profiles:
+      - testing
+
+  # =============================================================================
+  # Development Tools
+  # =============================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pqc-attestor-pgadmin
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@pqc-attestor.com
+      - PGADMIN_DEFAULT_PASSWORD=pgadmin
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./config/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - pqc-network
+    depends_on:
+      - postgres
+    profiles:
+      - tools
+    security_opt:
+      - no-new-privileges:true
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: pqc-attestor-redis-ui
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+      - HTTP_USER=admin
+      - HTTP_PASSWORD=redis
+    networks:
+      - pqc-network
+    depends_on:
+      - redis
+    profiles:
+      - tools
+    security_opt:
+      - no-new-privileges:true
+
+  # =============================================================================
+  # Load Balancer (for testing)
+  # =============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: pqc-attestor-lb
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certs:/etc/nginx/certs:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - pqc-network
+    depends_on:
+      - pqc-attestor
+    profiles:
+      - production
+    security_opt:
+      - no-new-privileges:true
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  pqc-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: pqc-bridge
+      com.docker.network.driver.mtu: 1500
+
+  pqc-test-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  # Application data
+  node_modules:
+    driver: local
+
+  # Database volumes
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/postgres
+
+  test_postgres_data:
+    driver: local
+
+  # Cache volumes
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis
+
+  # TPM data
+  tpm_data:
+    driver: local
+
+  # Monitoring data
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/prometheus
+
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/grafana
+
+  # Tools data
+  pgadmin_data:
+    driver: local
+
+  # Logs
+  nginx_logs:
+    driver: local
