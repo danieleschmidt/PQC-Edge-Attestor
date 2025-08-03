@@ -1,0 +1,185 @@
+{
+  "name": "pqc-edge-attestor",
+  "version": "1.0.0",
+  "description": "Post-Quantum Cryptography framework for IoT edge device attestation",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest --coverage",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
+    "test:security": "npm run test:crypto && npm run test:sidechannel",
+    "test:crypto": "jest tests/security/crypto.test.js",
+    "test:sidechannel": "node tests/security/sidechannel.js",
+    "test:hardware": "jest tests/hardware --testTimeout=30000",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/ tests/ --ext .js",
+    "lint:fix": "eslint src/ tests/ --ext .js --fix",
+    "format": "prettier --write 'src/**/*.js' 'tests/**/*.js'",
+    "format:check": "prettier --check 'src/**/*.js' 'tests/**/*.js'",
+    "build": "npm run lint && npm run test && npm run build:dist",
+    "build:dist": "webpack --mode production",
+    "build:docker": "docker build -t pqc-edge-attestor .",
+    "build:arm": "cross-env CC=arm-linux-gnueabihf-gcc npm run build",
+    "security-check": "npm audit && snyk test",
+    "benchmark": "node benchmarks/crypto-performance.js",
+    "benchmark:memory": "node benchmarks/memory-usage.js",
+    "clean": "rimraf dist/ coverage/ logs/ .nyc_output/",
+    "docs": "jsdoc src/ -d docs/api --readme README.md",
+    "docs:serve": "http-server docs/api -p 8080",
+    "coverage": "jest --coverage && open coverage/lcov-report/index.html",
+    "precommit": "npm run lint && npm run test:unit",
+    "prepare": "husky install",
+    "semantic-release": "semantic-release",
+    "migrate": "node scripts/migrate-database.js",
+    "seed": "node scripts/seed-database.js",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "k8s:deploy": "kubectl apply -f k8s/",
+    "k8s:delete": "kubectl delete -f k8s/",
+    "validate:config": "node scripts/validate-config.js",
+    "crypto:keygen": "node scripts/crypto-keygen.js",
+    "device:provision": "node scripts/device-provision.js",
+    "attestation:verify": "node scripts/verify-attestation.js"
+  },
+  "keywords": [
+    "post-quantum-cryptography",
+    "IoT",
+    "attestation", 
+    "security",
+    "kyber",
+    "dilithium",
+    "falcon",
+    "tpm",
+    "edge-computing",
+    "smart-meters",
+    "ev-chargers"
+  ],
+  "author": "Terragon Labs <info@terragon.ai>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danieleschmidt/PQC-Edge-Attestor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/danieleschmidt/PQC-Edge-Attestor/issues"
+  },
+  "homepage": "https://github.com/danieleschmidt/PQC-Edge-Attestor#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "helmet": "^7.0.0",
+    "cors": "^2.8.5",
+    "express-rate-limit": "^6.10.0",
+    "winston": "^3.10.0",
+    "dotenv": "^16.3.1",
+    "joi": "^17.9.2",
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^7.5.0",
+    "redis": "^4.6.7",
+    "ioredis": "^5.3.2",
+    "pg": "^8.11.3",
+    "sequelize": "^6.32.1",
+    "bull": "^4.11.3",
+    "socket.io": "^4.7.2",
+    "axios": "^1.5.0",
+    "crypto": "^1.0.1",
+    "node-forge": "^1.3.1",
+    "asn1js": "^3.0.5",
+    "pkijs": "^3.0.15",
+    "buffer": "^6.0.3",
+    "compression": "^1.7.4",
+    "multer": "^1.4.5-lts.1",
+    "swagger-ui-express": "^5.0.0",
+    "swagger-jsdoc": "^6.2.8",
+    "prometheus-api-metrics": "^3.2.2",
+    "prom-client": "^14.2.0"
+  },
+  "devDependencies": {
+    "jest": "^29.6.4",
+    "supertest": "^6.3.3",
+    "nodemon": "^3.0.1",
+    "eslint": "^8.47.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-security": "^1.7.1",
+    "eslint-plugin-node": "^11.1.0",
+    "prettier": "^3.0.2",
+    "husky": "^8.0.3",
+    "lint-staged": "^14.0.1",
+    "cross-env": "^7.0.3",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4",
+    "rimraf": "^5.0.1",
+    "jsdoc": "^4.0.2",
+    "http-server": "^14.1.1",
+    "semantic-release": "^21.1.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^9.0.4",
+    "snyk": "^1.1228.0",
+    "nyc": "^15.1.0",
+    "sinon": "^15.2.0",
+    "chai": "^4.3.8",
+    "mocha": "^10.2.0",
+    "artillery": "^2.0.0",
+    "clinic": "^12.0.0",
+    "0x": "^5.5.0"
+  },
+  "peerDependencies": {
+    "tpm2-tools": ">=5.0.0"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.32.5",
+    "canvas": "^2.11.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverage": true,
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "lcov", "html"],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    },
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
+    "testTimeout": 10000
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "npm run test:unit"
+    }
+  },
+  "release": {
+    "branches": ["main", "develop"],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/github",
+      "@semantic-release/git"
+    ]
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/danieleschmidt"
+  }
+}
