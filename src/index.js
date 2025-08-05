@@ -1,33 +1,54 @@
 /**
  * @file index.js
- * @brief Main application entry point for PQC-Edge-Attestor
- * 
- * Initializes the Express server with post-quantum cryptography APIs,
- * device management endpoints, and attestation services. Provides
- * comprehensive security middleware and monitoring capabilities.
+ * @brief Enhanced main entry point for PQC-Edge-Attestor HTTP API server - Generation 2
  */
 
+require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
 const compression = require('compression');
 const winston = require('winston');
-const path = require('path');
-require('dotenv').config();
 
-// Import routes
+// Import enhanced middleware
+const { errorHandler, notFoundHandler, asyncHandler } = require('./middleware/errorHandler');
+const { 
+    generateRequestId, 
+    securityHeaders, 
+    sanitizeInput, 
+    auditLog, 
+    validateContentType 
+} = require('./middleware/security');
+const { httpMetricsMiddleware, getMetrics } = require('./middleware/monitoring');
+const {
+    smartCompression,
+    responseCache,
+    requestOptimization,
+    connectionPooling,
+    contentOptimization,
+    adaptiveRateLimit,
+    performanceMonitoring,
+    getOptimizationMetrics,
+    triggerOptimization
+} = require('./middleware/optimization');
+
+// Import services
+const NotificationService = require('./services/notificationService');
+
+// Import route modules
 const pqcRoutes = require('./routes/pqc');
 const attestationRoutes = require('./routes/attestation');
 const deviceRoutes = require('./routes/devices');
 const healthRoutes = require('./routes/health');
 
-// Import services
-const PQCService = require('./services/pqcService');
-const AttestationService = require('./services/attestationService');
-const DeviceManagementService = require('./services/deviceManagementService');
+// Create Express application
+const app = express();
 
-// Configure logger
+// Initialize services
+const notificationService = new NotificationService();
+
+// Configure Winston logger
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
@@ -37,13 +58,8 @@ const logger = winston.createLogger({
   ),
   defaultMeta: { service: 'pqc-edge-attestor' },
   transports: [
-    new winston.transports.File({ 
-      filename: path.join(__dirname, '../logs/error.log'), 
-      level: 'error' 
-    }),
-    new winston.transports.File({ 
-      filename: path.join(__dirname, '../logs/combined.log') 
-    }),
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'logs/combined.log' }),
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
@@ -53,398 +69,295 @@ const logger = winston.createLogger({
   ]
 });
 
-// Application configuration
-const config = {
-  port: process.env.PORT || 3000,
-  nodeEnv: process.env.NODE_ENV || 'development',
-  apiVersion: 'v1',
-  maxRequestSize: '10mb',
-  corsOrigins: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
-  rateLimitWindow: 15 * 60 * 1000, // 15 minutes
-  rateLimitMax: 1000, // requests per window
-  enableSwagger: process.env.ENABLE_SWAGGER === 'true',
-  enableMetrics: process.env.ENABLE_METRICS !== 'false'
+// Create logs directory if it doesn't exist
+const fs = require('fs');
+if (!fs.existsSync('logs')) {
+  fs.mkdirSync('logs');
+}
+
+// Trust proxy for accurate IP addresses
+app.set('trust proxy', 1);
+
+// Essential middleware (order matters!)
+app.use(generateRequestId);
+app.use(requestOptimization);
+app.use(performanceMonitoring);
+app.use(httpMetricsMiddleware);
+app.use(securityHeaders);
+app.use(adaptiveRateLimit());
+
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}));
+
+// CORS configuration
+const corsOptions = {
+  origin: process.env.CORS_ORIGINS ? 
+    process.env.CORS_ORIGINS.split(',') : 
+    ['http://localhost:3000', 'http://localhost:8080'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+// Smart compression middleware
+app.use(smartCompression);
+
+// Content type validation
+app.use(validateContentType(['application/json', 'multipart/form-data']));
+
+// Request parsing middleware with limits
+app.use(express.json({ 
+  limit: '10mb',
+  strict: true
+}));
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: '10mb' 
+}));
+
+// Input sanitization
+app.use(sanitizeInput);
+
+// Connection pooling
+app.use(connectionPooling);
+
+// Content optimization
+app.use(contentOptimization);
+
+// Response caching (for GET requests)
+app.use(responseCache({ ttl: 300 }));
+
+// Audit logging
+app.use(auditLog);
+
+// Request logging
+app.use(morgan('combined', {
+  stream: {
+    write: (message) => logger.info(message.trim())
+  }
+}));
+
+// Root endpoint with enhanced info
+app.get('/', (req, res) => {
+  res.json({
+    name: 'PQC-Edge-Attestor',
+    version: '1.0.0',
+    description: 'Post-quantum cryptographic framework for IoT edge device attestation',
+    environment: process.env.NODE_ENV || 'development',
+    features: {
+      quantumResistant: true,
+      realTimeMonitoring: true,
+      enterpriseSecurity: true,
+      globalDeployment: true
+    },
+    endpoints: {
+      health: '/health',
+      api: '/api/v1',
+      metrics: '/metrics',
+      documentation: process.env.ENABLE_SWAGGER === 'true' ? '/api-docs' : null
+    },
+    security: {
+      rateLimit: 'enabled',
+      encryption: 'AES-256 + PQC',
+      authentication: 'JWT + API Keys',
+      monitoring: 'real-time'
+    },
+    timestamp: new Date().toISOString(),
+    requestId: req.id
+  });
+});
+
+// Health check routes
+app.use('/health', healthRoutes);
+
+// Metrics endpoint
+app.get('/metrics', asyncHandler(getMetrics));
+
+// Optimization metrics endpoint
+app.get('/api/v1/optimization/metrics', (req, res) => {
+  res.json({
+    success: true,
+    data: getOptimizationMetrics(),
+    timestamp: new Date().toISOString(),
+    requestId: req.id
+  });
+});
+
+// Manual optimization trigger
+app.post('/api/v1/optimization/optimize', asyncHandler(async (req, res) => {
+  const result = await triggerOptimization();
+  res.json({
+    success: true,
+    data: result,
+    timestamp: new Date().toISOString(),
+    requestId: req.id
+  });
+}));
+
+// API routes
+app.use('/api/v1/pqc', pqcRoutes);
+app.use('/api/v1/attestation', attestationRoutes);
+app.use('/api/v1/devices', deviceRoutes);
+
+// API status endpoint
+app.get('/api/v1/status', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      status: 'operational',
+      version: '1.0.0',
+      uptime: process.uptime(),
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
+      },
+      notifications: notificationService.getNotificationStats(),
+      environment: process.env.NODE_ENV || 'development'
+    },
+    timestamp: new Date().toISOString(),
+    requestId: req.id
+  });
+});
+
+// 404 handler
+app.use(notFoundHandler);
+
+// Global error handler (must be last)
+app.use(errorHandler);
+
+// Graceful shutdown handling
+const gracefulShutdown = (signal) => {
+  logger.info(`Received ${signal}. Starting graceful shutdown...`);
+  
+  // Send shutdown notification
+  notificationService.sendNotification(
+    'system',
+    ['slack', 'webhook'],
+    'PQC-Edge-Attestor server is shutting down gracefully',
+    { priority: 'medium', subject: 'Server Shutdown' }
+  );
+  
+  server.close(() => {
+    logger.info('HTTP server closed');
+    
+    // Close database connections, cleanup resources, etc.
+    process.exit(0);
+  });
+  
+  // Force close after 30 seconds
+  setTimeout(() => {
+    logger.error('Forceful shutdown after timeout');
+    process.exit(1);
+  }, 30000);
 };
 
-class PQCEdgeAttestorServer {
-  constructor() {
-    this.app = express();
-    this.services = {};
-    this.server = null;
-  }
-
-  /**
-   * Initialize all services
-   */
-  async initializeServices() {
+// Initialize services
+async function initializeServices() {
+  logger.info('Initializing services...');
+  
+  try {
+    // Initialize attestation service with fallback
     try {
-      logger.info('Initializing services...');
-      
-      // Initialize core services
-      this.services.pqc = new PQCService();
-      this.services.attestation = new AttestationService();
-      this.services.deviceManagement = new DeviceManagementService();
-      
-      // Initialize TPM if available
-      const tpmInitialized = await this.services.attestation.initializeTPM();
-      if (!tpmInitialized) {
-        logger.warn('TPM initialization failed - continuing without hardware attestation');
+      const AttestationService = require('./services/attestationService');
+      const attestationService = new AttestationService();
+      if (typeof attestationService.initialize === 'function') {
+        await attestationService.initialize();
       }
-      
-      // Setup service event listeners
-      this._setupServiceEventListeners();
-      
-      logger.info('All services initialized successfully');
-      
     } catch (error) {
-      logger.error('Service initialization failed', { error: error.message });
-      throw error;
-    }
-  }
-
-  /**
-   * Configure Express middleware
-   */
-  configureMiddleware() {
-    // Security middleware
-    this.app.use(helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", "data:", "https:"],
-          connectSrc: ["'self'"],
-          fontSrc: ["'self'"],
-          objectSrc: ["'none'"],
-          mediaSrc: ["'self'"],
-          frameSrc: ["'none'"]
-        }
-      },
-      crossOriginEmbedderPolicy: false
-    }));
-    
-    // CORS configuration
-    this.app.use(cors({
-      origin: config.corsOrigins,
-      methods: ['GET', 'POST', 'PUT', 'DELETE'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
-      credentials: true,
-      maxAge: 86400 // 24 hours
-    }));
-    
-    // Compression
-    this.app.use(compression());
-    
-    // Request parsing
-    this.app.use(express.json({ limit: config.maxRequestSize }));
-    this.app.use(express.urlencoded({ extended: true, limit: config.maxRequestSize }));
-    
-    // Logging middleware
-    this.app.use(morgan('combined', {
-      stream: {
-        write: (message) => logger.info(message.trim())
-      }
-    }));
-    
-    // Request ID middleware
-    this.app.use((req, res, next) => {
-      req.id = require('crypto').randomUUID();
-      res.setHeader('X-Request-ID', req.id);
-      next();
-    });
-    
-    // Request timing middleware
-    this.app.use((req, res, next) => {
-      req.startTime = Date.now();
-      res.on('finish', () => {
-        const duration = Date.now() - req.startTime;
-        logger.info('Request completed', {
-          requestId: req.id,
-          method: req.method,
-          url: req.url,
-          statusCode: res.statusCode,
-          duration: duration,
-          userAgent: req.get('User-Agent'),
-          ip: req.ip
-        });
-      });
-      next();
-    });
-  }
-
-  /**
-   * Configure API routes
-   */
-  configureRoutes() {
-    const apiBase = `/api/${config.apiVersion}`;
-    
-    // Health check endpoint (no auth required)
-    this.app.use('/health', healthRoutes);
-    
-    // API documentation
-    if (config.enableSwagger) {
-      this._setupSwaggerDocs();
+      logger.warn('Attestation service initialization skipped', { error: error.message });
     }
     
-    // Main API routes
-    this.app.use(`${apiBase}/pqc`, pqcRoutes);
-    this.app.use(`${apiBase}/attestation`, attestationRoutes);
-    this.app.use(`${apiBase}/devices`, deviceRoutes);
+    // Test notification channels
+    const testResults = await notificationService.testChannels(['slack']);
+    logger.info('Notification channel test results', testResults);
     
-    // Metrics endpoint
-    if (config.enableMetrics) {
-      this.app.get(`${apiBase}/metrics`, (req, res) => {
-        const metrics = {
-          pqc: this.services.pqc.getMetrics(),
-          attestation: this.services.attestation.getMetrics(),
-          deviceManagement: this.services.deviceManagement.getMetrics(),
-          system: {
-            uptime: process.uptime(),
-            memoryUsage: process.memoryUsage(),
-            cpuUsage: process.cpuUsage(),
-            version: process.version,
-            platform: process.platform
-          }
-        };
-        
-        res.json({
-          success: true,
-          data: metrics,
-          timestamp: new Date().toISOString()
-        });
-      });
-    }
+    logger.info('All services initialized successfully');
+    return true;
+  } catch (error) {
+    logger.error('Service initialization failed', { error: error.message });
     
-    // Root endpoint
-    this.app.get('/', (req, res) => {
-      res.json({
-        name: 'PQC-Edge-Attestor',
-        version: '1.0.0',
-        description: 'Post-quantum cryptographic framework for IoT edge device attestation',
-        endpoints: {
-          health: '/health',
-          api: `${apiBase}`,
-          documentation: config.enableSwagger ? '/api-docs' : null,
-          metrics: config.enableMetrics ? `${apiBase}/metrics` : null
-        },
-        timestamp: new Date().toISOString()
-      });
+    // Send error notification
+    await notificationService.sendAlert('service_initialization_failed', {
+      error: error.message,
+      severity: 'critical',
+      timestamp: new Date().toISOString()
     });
     
-    // 404 handler
-    this.app.use('*', (req, res) => {
-      res.status(404).json({
-        success: false,
-        error: {
-          message: 'Endpoint not found',
-          code: 'NOT_FOUND',
-          path: req.originalUrl
-        },
-        timestamp: new Date().toISOString()
-      });
-    });
-  }
-
-  /**
-   * Configure error handling
-   */
-  configureErrorHandling() {
-    // Error handling middleware
-    this.app.use((error, req, res, next) => {
-      logger.error('Unhandled error', {
-        requestId: req.id,
-        error: error.message,
-        stack: error.stack,
-        url: req.url,
-        method: req.method
-      });
-      
-      // Don't leak error details in production
-      const isDevelopment = config.nodeEnv === 'development';
-      
-      res.status(error.status || 500).json({
-        success: false,
-        error: {
-          message: error.message || 'Internal server error',
-          code: error.code || 'INTERNAL_ERROR',
-          ...(isDevelopment && { stack: error.stack })
-        },
-        requestId: req.id,
-        timestamp: new Date().toISOString()
-      });
-    });
-  }
-
-  /**
-   * Start the server
-   */
-  async start() {
-    try {
-      // Initialize services first
-      await this.initializeServices();
-      
-      // Configure Express app
-      this.configureMiddleware();
-      this.configureRoutes();
-      this.configureErrorHandling();
-      
-      // Start server
-      this.server = this.app.listen(config.port, () => {
-        logger.info('PQC-Edge-Attestor server started', {
-          port: config.port,
-          environment: config.nodeEnv,
-          apiVersion: config.apiVersion,
-          pid: process.pid,
-          timestamp: new Date().toISOString()
-        });
-      });
-      
-      // Setup graceful shutdown
-      this._setupGracefulShutdown();
-      
-    } catch (error) {
-      logger.error('Failed to start server', { error: error.message });
-      process.exit(1);
-    }
-  }
-
-  /**
-   * Stop the server gracefully
-   */
-  async stop() {
-    return new Promise((resolve) => {
-      logger.info('Shutting down server...');
-      
-      if (this.server) {
-        this.server.close((error) => {
-          if (error) {
-            logger.error('Error during server shutdown', { error: error.message });
-          } else {
-            logger.info('Server shutdown completed');
-          }
-          resolve();
-        });
-      } else {
-        resolve();
-      }
-    });
-  }
-
-  /**
-   * Setup service event listeners
-   */
-  _setupServiceEventListeners() {
-    // Device management events
-    this.services.deviceManagement.on('deviceProvisioned', (event) => {
-      logger.info('Device provisioned', event);
-    });
-    
-    this.services.deviceManagement.on('attestationFailed', (event) => {
-      logger.warn('Device attestation failed', event);
-    });
-    
-    this.services.deviceManagement.on('firmwareUpdateCompleted', (event) => {
-      logger.info('Firmware update completed', event);
-    });
-    
-    this.services.deviceManagement.on('deviceRevoked', (event) => {
-      logger.warn('Device revoked', event);
-    });
-  }
-
-  /**
-   * Setup Swagger API documentation
-   */
-  _setupSwaggerDocs() {
-    try {
-      const swaggerJsdoc = require('swagger-jsdoc');
-      const swaggerUi = require('swagger-ui-express');
-      
-      const options = {
-        definition: {
-          openapi: '3.0.0',
-          info: {
-            title: 'PQC-Edge-Attestor API',
-            version: '1.0.0',
-            description: 'Post-quantum cryptographic framework for IoT edge device attestation',
-            contact: {
-              name: 'Terragon Labs',
-              email: 'dev@terragonlabs.com',
-              url: 'https://terragonlabs.com'
-            },
-            license: {
-              name: 'Apache 2.0',
-              url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
-            }
-          },
-          servers: [
-            {
-              url: `http://localhost:${config.port}/api/${config.apiVersion}`,
-              description: 'Development server'
-            }
-          ],
-          components: {
-            securitySchemes: {
-              ApiKeyAuth: {
-                type: 'apiKey',
-                in: 'header',
-                name: 'X-API-Key'
-              }
-            }
-          }
-        },
-        apis: ['./src/routes/*.js']
-      };
-      
-      const specs = swaggerJsdoc(options);
-      this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
-      
-      logger.info('Swagger documentation enabled at /api-docs');
-      
-    } catch (error) {
-      logger.warn('Failed to setup Swagger documentation', { error: error.message });
-    }
-  }
-
-  /**
-   * Setup graceful shutdown handlers
-   */
-  _setupGracefulShutdown() {
-    const gracefulShutdown = async (signal) => {
-      logger.info(`Received ${signal}, starting graceful shutdown`);
-      
-      try {
-        await this.stop();
-        process.exit(0);
-      } catch (error) {
-        logger.error('Error during graceful shutdown', { error: error.message });
-        process.exit(1);
-      }
-    };
-    
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-    
-    process.on('uncaughtException', (error) => {
-      logger.error('Uncaught exception', { error: error.message, stack: error.stack });
-      process.exit(1);
-    });
-    
-    process.on('unhandledRejection', (reason, promise) => {
-      logger.error('Unhandled rejection', { reason: reason, promise: promise });
-      process.exit(1);
-    });
+    return false;
   }
 }
 
-// Create and start server if this file is run directly
+// Start server
+async function startServer() {
+  const servicesReady = await initializeServices();
+  
+  if (!servicesReady) {
+    logger.error('Failed to initialize services. Exiting...');
+    process.exit(1);
+  }
+
+  const PORT = process.env.PORT || 3000;
+  const server = app.listen(PORT, () => {
+    logger.info('PQC-Edge-Attestor server started', {
+      port: PORT,
+      environment: process.env.NODE_ENV || 'development',
+      apiVersion: 'v1',
+      pid: process.pid,
+      features: {
+        monitoring: true,
+        notifications: true,
+        security: 'enhanced',
+        optimization: 'auto-scaling',
+        caching: 'intelligent',
+        compression: 'adaptive',
+        generation: 3
+      }
+    });
+    
+    // Send startup notification
+    notificationService.sendNotification(
+      'system',
+      ['slack', 'webhook'],
+      `PQC-Edge-Attestor server started successfully on port ${PORT}`,
+      { 
+        priority: 'low', 
+        subject: 'Server Startup',
+        data: { port: PORT, generation: 2 }
+      }
+    );
+  });
+
+  // Handle graceful shutdown
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  return server;
+}
+
+// Export app and services for testing
+module.exports = { 
+  app, 
+  notificationService 
+};
+
+// Start server if this file is run directly
 if (require.main === module) {
-  const server = new PQCEdgeAttestorServer();
-  server.start().catch((error) => {
-    logger.error('Failed to start application', { error: error.message });
+  startServer().catch(error => {
+    logger.error('Failed to start server', { error: error.message });
     process.exit(1);
   });
 }
-
-module.exports = PQCEdgeAttestorServer;

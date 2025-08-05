@@ -9,7 +9,7 @@
 
 const PQCService = require('../services/pqcService');
 const Joi = require('joi');
-const rateLimit = require('express-rate-limit');
+const { RateLimiterMemory } = require('rate-limiter-flexible');
 const winston = require('winston');
 
 // Configure logger
@@ -31,20 +31,14 @@ const logger = winston.createLogger({
 });
 
 // Rate limiting configurations
-const keyGenerationLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 key generations per window
-  message: 'Too many key generation requests, please try again later',
-  standardHeaders: true,
-  legacyHeaders: false
+const keyGenerationLimiter = new RateLimiterMemory({
+  points: 10, // 10 requests
+  duration: 15 * 60, // per 15 minutes
 });
 
-const cryptoOperationLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 100, // 100 operations per minute
-  message: 'Too many cryptographic operations, please try again later',
-  standardHeaders: true,
-  legacyHeaders: false
+const cryptoOperationLimiter = new RateLimiterMemory({
+  points: 100, // 100 requests
+  duration: 60, // per minute
 });
 
 // Validation schemas
@@ -767,11 +761,39 @@ class PQCController {
 
   // Middleware functions
   static getKeyGenerationLimiter() {
-    return keyGenerationLimiter;
+    return async (req, res, next) => {
+      try {
+        await keyGenerationLimiter.consume(req.ip);
+        next();
+      } catch (rejRes) {
+        res.status(429).json({
+          success: false,
+          error: {
+            message: 'Too many key generation requests, please try again later',
+            code: 'RATE_LIMIT_EXCEEDED'
+          },
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
   }
 
   static getCryptoOperationLimiter() {
-    return cryptoOperationLimiter;
+    return async (req, res, next) => {
+      try {
+        await cryptoOperationLimiter.consume(req.ip);
+        next();
+      } catch (rejRes) {
+        res.status(429).json({
+          success: false,
+          error: {
+            message: 'Too many cryptographic operations, please try again later',
+            code: 'RATE_LIMIT_EXCEEDED'
+          },
+          timestamp: new Date().toISOString()
+        });
+      }
+    };
   }
 }
 
