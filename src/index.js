@@ -32,6 +32,7 @@ const {
     getOptimizationMetrics,
     triggerOptimization
 } = require('./middleware/optimization');
+const { quantumAcceleration, getAccelerationMetrics } = require('./middleware/quantumAcceleration');
 
 // Import services
 const NotificationService = require('./services/notificationService');
@@ -41,6 +42,7 @@ const pqcRoutes = require('./routes/pqc');
 const attestationRoutes = require('./routes/attestation');
 const deviceRoutes = require('./routes/devices');
 const healthRoutes = require('./routes/health');
+const { router: researchRoutes, cleanup: researchCleanup } = require('./routes/research');
 
 // Create Express application
 const app = express();
@@ -83,6 +85,7 @@ app.use(generateRequestId);
 app.use(requestOptimization);
 app.use(performanceMonitoring);
 app.use(httpMetricsMiddleware);
+app.use(quantumAcceleration());
 app.use(securityHeaders);
 app.use(adaptiveRateLimit());
 
@@ -191,7 +194,10 @@ app.get('/metrics', asyncHandler(getMetrics));
 app.get('/api/v1/optimization/metrics', (req, res) => {
   res.json({
     success: true,
-    data: getOptimizationMetrics(),
+    data: {
+      ...getOptimizationMetrics(),
+      quantumAcceleration: getAccelerationMetrics()
+    },
     timestamp: new Date().toISOString(),
     requestId: req.id
   });
@@ -212,6 +218,7 @@ app.post('/api/v1/optimization/optimize', asyncHandler(async (req, res) => {
 app.use('/api/v1/pqc', pqcRoutes);
 app.use('/api/v1/attestation', attestationRoutes);
 app.use('/api/v1/devices', deviceRoutes);
+app.use('/api/v1/research', researchRoutes);
 
 // API status endpoint
 app.get('/api/v1/status', (req, res) => {
@@ -253,6 +260,13 @@ const gracefulShutdown = (signal) => {
   
   server.close(() => {
     logger.info('HTTP server closed');
+    
+    // Cleanup research services
+    try {
+      await researchCleanup();
+    } catch (error) {
+      logger.warn('Research cleanup failed', { error: error.message });
+    }
     
     // Close database connections, cleanup resources, etc.
     process.exit(0);
