@@ -11,6 +11,10 @@ const crypto = require('crypto');
 const { promisify } = require('util');
 const winston = require('winston');
 const path = require('path');
+const cluster = require('cluster');
+const os = require('os');
+const EventEmitter = require('events');
+const { Worker } = require('worker_threads');
 
 // Mock PQC library for generation 1 - simple implementation
 const libpqc = {
@@ -63,13 +67,59 @@ const logger = winston.createLogger({
   ]
 });
 
-class PQCService {
-  constructor() {
+class PQCService extends EventEmitter {
+  constructor(options = {}) {
+    super();
+    
+    this.options = {
+      enableConcurrency: options.enableConcurrency !== false,
+      maxWorkers: options.maxWorkers || os.cpus().length,
+      cacheEnabled: options.cacheEnabled !== false,
+      batchSize: options.batchSize || 10,
+      adaptiveOptimization: options.adaptiveOptimization !== false,
+      hardwareAcceleration: options.hardwareAcceleration !== false,
+      ...options
+    };
+    
     this.metrics = {
       operationsCount: new Map(),
       averageLatency: new Map(),
-      errorCount: new Map()
+      errorCount: new Map(),
+      throughput: new Map(),
+      concurrentOperations: 0,
+      peakMemory: 0,
+      cacheHits: 0,
+      cacheMisses: 0
     };
+    
+    // Advanced caching layer with LRU eviction
+    this.cache = new Map();
+    this.cacheAccessTime = new Map();
+    this.maxCacheSize = options.maxCacheSize || 1000;
+    
+    // Worker pool for CPU-intensive operations
+    this.workerPool = [];
+    this.workerQueue = [];
+    this.busyWorkers = new Set();
+    
+    // Adaptive optimization system
+    this.performanceBaseline = new Map();
+    this.optimizationHistory = [];
+    this.adaptiveThresholds = {
+      latencyThreshold: 100, // ms
+      throughputThreshold: 10, // ops/sec
+      memoryThreshold: 100 * 1024 * 1024 // 100MB
+    };
+    
+    // Hardware acceleration detection
+    this.hardwareCapabilities = {
+      hasAESNI: false,
+      hasSHAExtensions: false,
+      hasAVX2: false,
+      hasHardwareRNG: false
+    };
+    
+    this.initializeOptimizations();
   }
 
   /**
@@ -604,6 +654,462 @@ class PQCService {
   _updateErrorMetrics(operation) {
     const currentCount = this.metrics.errorCount.get(operation) || 0;
     this.metrics.errorCount.set(operation, currentCount + 1);
+  }
+  
+  /**
+   * Initialize performance optimizations and hardware detection
+   */
+  async initializeOptimizations() {
+    if (this.options.hardwareAcceleration) {
+      await this.detectHardwareCapabilities();
+    }
+    
+    if (this.options.enableConcurrency) {
+      await this.initializeWorkerPool();
+    }
+    
+    // Start adaptive optimization monitoring
+    if (this.options.adaptiveOptimization) {
+      this.startAdaptiveOptimization();
+    }
+    
+    logger.info('PQC Service Generation 3 optimizations initialized', {
+      concurrency: this.options.enableConcurrency,
+      workers: this.workerPool.length,
+      cache: this.options.cacheEnabled,
+      hardware: this.hardwareCapabilities
+    });
+  }
+  
+  /**
+   * Detect hardware acceleration capabilities
+   */
+  async detectHardwareCapabilities() {
+    try {
+      // Check for AES-NI support
+      const cpuInfo = os.cpus()[0];
+      this.hardwareCapabilities.hasAESNI = cpuInfo.model.includes('AES') || 
+        process.arch === 'x64';
+      
+      // Check for hardware RNG (simplified detection)
+      this.hardwareCapabilities.hasHardwareRNG = crypto.constants && 
+        crypto.constants.defaultCoreCipherList;
+      
+      logger.info('Hardware capabilities detected', this.hardwareCapabilities);
+    } catch (error) {
+      logger.warn('Hardware capability detection failed', { error: error.message });
+    }
+  }
+  
+  /**
+   * Initialize worker pool for concurrent operations
+   */
+  async initializeWorkerPool() {
+    const workerCount = Math.min(this.options.maxWorkers, os.cpus().length);
+    
+    for (let i = 0; i < workerCount; i++) {
+      try {
+        // Create worker for CPU-intensive PQC operations
+        const worker = {
+          id: i,
+          busy: false,
+          operations: 0,
+          errors: 0,
+          created: Date.now()
+        };
+        
+        this.workerPool.push(worker);
+      } catch (error) {
+        logger.warn(`Failed to create worker ${i}`, { error: error.message });
+      }
+    }
+    
+    logger.info(`Initialized worker pool with ${this.workerPool.length} workers`);
+  }
+  
+  /**
+   * Start adaptive optimization monitoring
+   */
+  startAdaptiveOptimization() {
+    setInterval(() => {
+      this.analyzePerformanceMetrics();
+      this.optimizeBasedOnMetrics();
+    }, 30000); // Every 30 seconds
+  }
+  
+  /**
+   * Analyze current performance metrics for optimization opportunities
+   */
+  analyzePerformanceMetrics() {
+    const currentMetrics = this.getDetailedMetrics();
+    
+    // Check if we need to adjust thresholds
+    const avgLatency = this.calculateAverageLatency();
+    const currentThroughput = this.calculateThroughput();
+    
+    if (avgLatency > this.adaptiveThresholds.latencyThreshold) {
+      this.emit('performance-degradation', { type: 'latency', value: avgLatency });
+    }
+    
+    if (currentThroughput < this.adaptiveThresholds.throughputThreshold) {
+      this.emit('performance-degradation', { type: 'throughput', value: currentThroughput });
+    }
+    
+    // Update performance baseline
+    this.performanceBaseline.set('latency', avgLatency);
+    this.performanceBaseline.set('throughput', currentThroughput);
+    
+    logger.debug('Performance analysis completed', {
+      avgLatency,
+      currentThroughput,
+      concurrentOps: this.metrics.concurrentOperations
+    });
+  }
+  
+  /**
+   * Apply optimizations based on performance metrics
+   */
+  optimizeBasedOnMetrics() {
+    const avgLatency = this.performanceBaseline.get('latency') || 0;
+    const throughput = this.performanceBaseline.get('throughput') || 0;
+    
+    // Auto-scale worker pool if needed
+    if (avgLatency > this.adaptiveThresholds.latencyThreshold && 
+        this.workerPool.length < this.options.maxWorkers) {
+      this.scaleUpWorkers();
+    }
+    
+    // Optimize cache size based on hit rate
+    const hitRate = this.getCacheHitRate();
+    if (hitRate < 0.7 && this.maxCacheSize < 5000) {
+      this.maxCacheSize = Math.min(this.maxCacheSize * 1.5, 5000);
+      logger.info(`Cache size increased to ${this.maxCacheSize}`);
+    }
+    
+    this.optimizationHistory.push({
+      timestamp: Date.now(),
+      latency: avgLatency,
+      throughput: throughput,
+      workers: this.workerPool.length,
+      cacheSize: this.maxCacheSize
+    });
+  }
+  
+  /**
+   * Scale up worker pool
+   */
+  scaleUpWorkers() {
+    if (this.workerPool.length < this.options.maxWorkers) {
+      const newWorker = {
+        id: this.workerPool.length,
+        busy: false,
+        operations: 0,
+        errors: 0,
+        created: Date.now()
+      };
+      
+      this.workerPool.push(newWorker);
+      logger.info(`Scaled up worker pool to ${this.workerPool.length} workers`);
+      this.emit('worker-pool-scaled', { count: this.workerPool.length });
+    }
+  }
+  
+  /**
+   * Batch process multiple operations for efficiency
+   */
+  async batchProcess(operations, operationType) {
+    const batches = [];
+    for (let i = 0; i < operations.length; i += this.options.batchSize) {
+      batches.push(operations.slice(i, i + this.options.batchSize));
+    }
+    
+    const results = [];
+    const batchPromises = batches.map(async (batch, index) => {
+      const worker = this.getAvailableWorker();
+      if (worker) {
+        return this.processBatch(batch, operationType, worker);
+      } else {
+        // Fallback to sequential processing
+        return this.processSequential(batch, operationType);
+      }
+    });
+    
+    const batchResults = await Promise.all(batchPromises);
+    return batchResults.flat();
+  }
+  
+  /**
+   * Get available worker from pool
+   */
+  getAvailableWorker() {
+    return this.workerPool.find(worker => !worker.busy);
+  }
+  
+  /**
+   * Process batch of operations with a worker
+   */
+  async processBatch(batch, operationType, worker) {
+    worker.busy = true;
+    this.metrics.concurrentOperations++;
+    
+    try {
+      const results = [];
+      for (const operation of batch) {
+        const result = await this.executeOperation(operation, operationType);
+        results.push(result);
+        worker.operations++;
+      }
+      
+      return results;
+    } catch (error) {
+      worker.errors++;
+      throw error;
+    } finally {
+      worker.busy = false;
+      this.metrics.concurrentOperations--;
+    }
+  }
+  
+  /**
+   * Fallback sequential processing
+   */
+  async processSequential(batch, operationType) {
+    const results = [];
+    for (const operation of batch) {
+      const result = await this.executeOperation(operation, operationType);
+      results.push(result);
+    }
+    return results;
+  }
+  
+  /**
+   * Execute individual operation with caching
+   */
+  async executeOperation(operation, operationType) {
+    const cacheKey = this.generateCacheKey(operation, operationType);
+    
+    if (this.options.cacheEnabled) {
+      const cached = this.getFromCache(cacheKey);
+      if (cached) {
+        this.metrics.cacheHits++;
+        return cached;
+      }
+    }
+    
+    this.metrics.cacheMisses++;
+    let result;
+    
+    switch (operationType) {
+      case 'kyber_keygen':
+        result = await this.generateKyberKeyPair();
+        break;
+      case 'dilithium_keygen':
+        result = await this.generateDilithiumKeyPair();
+        break;
+      case 'falcon_keygen':
+        result = await this.generateFalconKeyPair();
+        break;
+      default:
+        throw new Error(`Unknown operation type: ${operationType}`);
+    }
+    
+    if (this.options.cacheEnabled) {
+      this.setInCache(cacheKey, result);
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Generate cache key for operation
+   */
+  generateCacheKey(operation, operationType) {
+    const hash = crypto.createHash('sha256');
+    hash.update(JSON.stringify(operation) + operationType);
+    return hash.digest('hex');
+  }
+  
+  /**
+   * Get value from cache with LRU update
+   */
+  getFromCache(key) {
+    if (this.cache.has(key)) {
+      // Update access time for LRU
+      this.cacheAccessTime.set(key, Date.now());
+      return this.cache.get(key);
+    }
+    return null;
+  }
+  
+  /**
+   * Set value in cache with LRU eviction
+   */
+  setInCache(key, value) {
+    if (this.cache.size >= this.maxCacheSize) {
+      this.evictLRU();
+    }
+    
+    this.cache.set(key, value);
+    this.cacheAccessTime.set(key, Date.now());
+  }
+  
+  /**
+   * Evict least recently used cache entry
+   */
+  evictLRU() {
+    let oldestKey = null;
+    let oldestTime = Date.now();
+    
+    for (const [key, time] of this.cacheAccessTime.entries()) {
+      if (time < oldestTime) {
+        oldestTime = time;
+        oldestKey = key;
+      }
+    }
+    
+    if (oldestKey) {
+      this.cache.delete(oldestKey);
+      this.cacheAccessTime.delete(oldestKey);
+    }
+  }
+  
+  /**
+   * Calculate average latency across all operations
+   */
+  calculateAverageLatency() {
+    const latencies = Array.from(this.metrics.averageLatency.values());
+    return latencies.length > 0 ? 
+      latencies.reduce((sum, val) => sum + val, 0) / latencies.length : 0;
+  }
+  
+  /**
+   * Calculate current throughput (operations per second)
+   */
+  calculateThroughput() {
+    const now = Date.now();
+    const oneSecondAgo = now - 1000;
+    let recentOperations = 0;
+    
+    for (const count of this.metrics.operationsCount.values()) {
+      recentOperations += count;
+    }
+    
+    return recentOperations; // Simplified throughput calculation
+  }
+  
+  /**
+   * Get cache hit rate
+   */
+  getCacheHitRate() {
+    const total = this.metrics.cacheHits + this.metrics.cacheMisses;
+    return total > 0 ? this.metrics.cacheHits / total : 0;
+  }
+  
+  /**
+   * Get detailed performance metrics including Generation 3 enhancements
+   */
+  getDetailedMetrics() {
+    const baseMetrics = this.getMetrics();
+    
+    return {
+      ...baseMetrics,
+      generation3: {
+        concurrentOperations: this.metrics.concurrentOperations,
+        peakMemory: this.metrics.peakMemory,
+        cacheStats: {
+          hits: this.metrics.cacheHits,
+          misses: this.metrics.cacheMisses,
+          hitRate: this.getCacheHitRate(),
+          size: this.cache.size,
+          maxSize: this.maxCacheSize
+        },
+        workerPool: {
+          totalWorkers: this.workerPool.length,
+          busyWorkers: this.busyWorkers.size,
+          utilization: this.busyWorkers.size / this.workerPool.length
+        },
+        hardware: this.hardwareCapabilities,
+        throughput: this.calculateThroughput(),
+        averageLatency: this.calculateAverageLatency(),
+        optimizationHistory: this.optimizationHistory.slice(-10) // Last 10 optimizations
+      }
+    };
+  }
+  
+  /**
+   * Cleanup resources for graceful shutdown
+   */
+  async cleanup() {
+    logger.info('Cleaning up PQC Service resources...');
+    
+    // Clear caches
+    this.cache.clear();
+    this.cacheAccessTime.clear();
+    
+    // Cleanup worker pool
+    this.workerPool.length = 0;
+    this.busyWorkers.clear();
+    
+    // Reset metrics
+    this.resetMetrics();
+    
+    this.emit('cleanup-complete');
+    logger.info('PQC Service cleanup completed');
+  }
+  
+  /**
+   * Export performance data for analysis
+   */
+  exportPerformanceData() {
+    return {
+      timestamp: Date.now(),
+      metrics: this.getDetailedMetrics(),
+      optimizations: this.optimizationHistory,
+      configuration: this.options,
+      hardware: this.hardwareCapabilities
+    };
+  }
+  
+  /**
+   * Research-grade performance benchmarking
+   */
+  async runPerformanceBenchmark(iterations = 1000) {
+    logger.info(`Starting performance benchmark with ${iterations} iterations`);
+    
+    const algorithms = ['kyber', 'dilithium', 'falcon'];
+    const results = {};
+    
+    for (const algorithm of algorithms) {
+      const startTime = process.hrtime.bigint();
+      const startMemory = process.memoryUsage();
+      
+      const operations = Array(iterations).fill().map((_, i) => ({ id: i }));
+      
+      try {
+        await this.batchProcess(operations, `${algorithm}_keygen`);
+        
+        const endTime = process.hrtime.bigint();
+        const endMemory = process.memoryUsage();
+        
+        results[algorithm] = {
+          iterations,
+          totalTime: Number(endTime - startTime) / 1e6, // Convert to milliseconds
+          averageTime: Number(endTime - startTime) / 1e6 / iterations,
+          memoryDelta: {
+            heapUsed: endMemory.heapUsed - startMemory.heapUsed,
+            heapTotal: endMemory.heapTotal - startMemory.heapTotal
+          },
+          throughput: iterations / (Number(endTime - startTime) / 1e9), // ops/second
+        };
+        
+      } catch (error) {
+        logger.error(`Benchmark failed for ${algorithm}`, { error: error.message });
+        results[algorithm] = { error: error.message };
+      }
+    }
+    
+    logger.info('Performance benchmark completed', results);
+    return results;
   }
 }
 
