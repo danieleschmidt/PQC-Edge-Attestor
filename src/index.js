@@ -43,6 +43,7 @@ const attestationRoutes = require('./routes/attestation');
 const deviceRoutes = require('./routes/devices');
 const healthRoutes = require('./routes/health');
 const { router: researchRoutes, cleanup: researchCleanup } = require('./routes/research');
+const { router: mlStandardsRoutes, cleanup: mlStandardsCleanup } = require('./routes/mlStandards');
 
 // Create Express application
 const app = express();
@@ -219,6 +220,7 @@ app.use('/api/v1/pqc', pqcRoutes);
 app.use('/api/v1/attestation', attestationRoutes);
 app.use('/api/v1/devices', deviceRoutes);
 app.use('/api/v1/research', researchRoutes);
+app.use('/api/v1/ml-standards', mlStandardsRoutes);
 
 // API status endpoint
 app.get('/api/v1/status', (req, res) => {
@@ -264,6 +266,7 @@ const gracefulShutdown = (signal) => {
     // Cleanup research services
     try {
       await researchCleanup();
+      await mlStandardsCleanup();
     } catch (error) {
       logger.warn('Research cleanup failed', { error: error.message });
     }
