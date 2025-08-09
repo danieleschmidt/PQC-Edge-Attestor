@@ -6,8 +6,11 @@
   "scripts": {
     "build": "make build",
     "build:release": "make release",
-    "test": "make test",
-    "test:coverage": "cd build/debug && ctest --verbose && gcov src/**/*.c",
+    "test": "jest --testTimeout=30000 --detectOpenHandles",
+    "test:unit": "jest tests/unit --testTimeout=30000",
+    "test:integration": "jest tests/integration --testTimeout=60000",
+    "test:e2e": "jest tests/e2e --testTimeout=120000",
+    "test:coverage": "jest --coverage --testTimeout=30000",
     "lint": "make lint",
     "format": "make format",
     "clean": "make clean",
@@ -61,6 +64,8 @@
     "@semantic-release/release-notes-generator": "^11.0.7",
     "conventional-changelog-cli": "^4.1.0",
     "husky": "^8.0.3",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
     "lint-staged": "^15.2.0",
     "nodemon": "^3.0.2",
     "semantic-release": "^21.1.2"
