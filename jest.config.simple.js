@@ -32,9 +32,9 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   testTimeout: 30000,
-  maxWorkers: '50%',
+  maxWorkers: 1,
   verbose: true,
   clearMocks: true,
   detectOpenHandles: true,
-  forceExit: false
+  forceExit: true
 };

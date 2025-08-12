@@ -143,8 +143,8 @@ module.exports = {
     '/node_modules/'
   ],
   
-  // Test result processor
-  testResultsProcessor: 'jest-sonar-reporter',
+  // Test result processor (commented out for now)
+  // testResultsProcessor: 'jest-sonar-reporter',
   
   // Reporters
   reporters: [
