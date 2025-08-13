@@ -33,6 +33,7 @@ const {
     triggerOptimization
 } = require('./middleware/optimization');
 const { quantumAcceleration, getAccelerationMetrics } = require('./middleware/quantumAcceleration');
+const { advancedQuantumDefense } = require('./middleware/advancedQuantumDefense');
 
 // Import services
 const NotificationService = require('./services/notificationService');
@@ -44,6 +45,7 @@ const deviceRoutes = require('./routes/devices');
 const healthRoutes = require('./routes/health');
 const { router: researchRoutes, cleanup: researchCleanup } = require('./routes/research');
 const { router: mlStandardsRoutes, cleanup: mlStandardsCleanup } = require('./routes/mlStandards');
+const quantumCloudRoutes = require('./routes/quantumCloud');
 
 // Create Express application
 const app = express();
@@ -87,6 +89,7 @@ app.use(requestOptimization);
 app.use(performanceMonitoring);
 app.use(httpMetricsMiddleware);
 app.use(quantumAcceleration());
+app.use(advancedQuantumDefense());
 app.use(securityHeaders);
 app.use(adaptiveRateLimit());
 
@@ -221,6 +224,7 @@ app.use('/api/v1/attestation', attestationRoutes);
 app.use('/api/v1/devices', deviceRoutes);
 app.use('/api/v1/research', researchRoutes);
 app.use('/api/v1/ml-standards', mlStandardsRoutes);
+app.use('/api/v1/quantum-cloud', quantumCloudRoutes);
 
 // API status endpoint
 app.get('/api/v1/status', (req, res) => {
