@@ -253,7 +253,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Graceful shutdown handling
-const gracefulShutdown = (signal) => {
+const gracefulShutdown = async (signal) => {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
   
   // Send shutdown notification
@@ -264,7 +264,7 @@ const gracefulShutdown = (signal) => {
     { priority: 'medium', subject: 'Server Shutdown' }
   );
   
-  server.close(() => {
+  server.close(async () => {
     logger.info('HTTP server closed');
     
     // Cleanup research services
