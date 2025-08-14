@@ -304,6 +304,18 @@ class QuantumAcceleratedOptimizer extends EventEmitter {
             throughput: 0
         };
         
+        // Use target function if provided
+        if (targetFunction && typeof targetFunction === 'function') {
+            const result = await targetFunction(configuration);
+            if (result && typeof result.score === 'number') {
+                return { 
+                    ...metrics, 
+                    overallScore: result.score,
+                    throughput: result.score / 10 // Convert score to throughput
+                };
+            }
+        }
+        
         // Simulate performance measurement based on configuration
         // In production, this would actually apply the configuration and measure real performance
         

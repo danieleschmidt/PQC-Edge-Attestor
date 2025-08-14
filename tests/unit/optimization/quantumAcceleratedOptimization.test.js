@@ -329,8 +329,8 @@ describe('EnergyOptimizer', () => {
     test('initializes with configuration', () => {
       expect(energyOptimizer.config.targetReduction).toBe(0.25);
       expect(energyOptimizer.config.measurementInterval).toBe(500);
-      expect(energyOptimizer.optimizationStrategies).toHaveProperty('voltage_scaling');
-      expect(energyOptimizer.optimizationStrategies).toHaveProperty('frequency_scaling');
+      expect(energyOptimizer.optimizationStrategies.has('voltage_scaling')).toBe(true);
+      expect(energyOptimizer.optimizationStrategies.has('frequency_scaling')).toBe(true);
     });
   });
 

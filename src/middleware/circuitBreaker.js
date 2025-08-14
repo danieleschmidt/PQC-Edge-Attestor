@@ -1,6 +1,7 @@
+```javascript
 /**
  * @file circuitBreaker.js
- * @brief Advanced circuit breaker middleware for Generation 2 reliability
+ * @brief Advanced circuit breaker implementation for Generation 2 reliability
  */
 
 const { performance } = require('perf_hooks');
@@ -38,6 +39,7 @@ class CircuitBreaker {
         // Configuration
         this.failureThreshold = options.failureThreshold || 5;
         this.recoveryTimeout = options.recoveryTimeout || 60000; // 1 minute
+        this.resetTimeout = options.resetTimeout || 60000; // 1 minute
         this.successThreshold = options.successThreshold || 2;
         this.timeout = options.timeout || 10000; // 10 seconds
         this.monitoringPeriod = options.monitoringPeriod || 300000; // 5 minutes
@@ -48,19 +50,32 @@ class CircuitBreaker {
             successfulRequests: 0,
             failedRequests: 0,
             rejectedRequests: 0,
+            timeouts: 0,
+            circuitOpenings: 0,
             averageResponseTime: 0,
+            responseTimeHistory: [],
             lastResetTime: Date.now()
         };
         
+        // Health check
+        this.healthCheck = options.healthCheck || (() => Promise.resolve(true));
+        
         // Start monitoring
         this.startMonitoring();
+        
+        cbLogger.info(`Circuit breaker '${this.name}' initialized`, {
+            failureThreshold: this.failureThreshold,
+            timeout: this.timeout,
+            resetTimeout: this.resetTimeout,
+            recoveryTimeout: this.recoveryTimeout
+        });
     }
     
     async execute(operation, fallback = null) {
         this.metrics.totalRequests++;
         
         if (this.state === STATES.OPEN) {
-            if (Date.now() < this.nextAttempt) {
+            if (Date.now() < this.nextAttempt && !this.shouldAttemptReset()) {
                 this.metrics.rejectedRequests++;
                 cbLogger.warn('Circuit breaker rejected request', {
                     circuitBreaker: this.name,
@@ -115,6 +130,7 @@ class CircuitBreaker {
     onSuccess(duration) {
         this.metrics.successfulRequests++;
         this.updateAverageResponseTime(duration);
+        this.updateResponseTimeHistory(duration);
         
         if (this.state === STATES.HALF_OPEN) {
             this.successCount++;
@@ -134,14 +150,20 @@ class CircuitBreaker {
     onFailure(error, duration) {
         this.metrics.failedRequests++;
         this.updateAverageResponseTime(duration);
+        this.updateResponseTimeHistory(duration);
         this.failureCount++;
         this.lastFailureTime = Date.now();
+        
+        if (error.message === 'Operation timeout') {
+            this.metrics.timeouts++;
+        }
         
         cbLogger.warn('Circuit breaker recorded failure', {
             circuitBreaker: this.name,
             error: error.message,
             failureCount: this.failureCount,
-            threshold: this.failureThreshold
+            threshold: this.failureThreshold,
+            responseTime: duration
         });
         
         if (this.failureCount >= this.failureThreshold) {
@@ -152,6 +174,7 @@ class CircuitBreaker {
     trip() {
         this.state = STATES.OPEN;
         this.nextAttempt = Date.now() + this.recoveryTimeout;
+        this.metrics.circuitOpenings++;
         
         cbLogger.error('Circuit breaker tripped to OPEN state', {
             circuitBreaker: this.name,
@@ -165,6 +188,12 @@ class CircuitBreaker {
         this.failureCount = 0;
         this.successCount = 0;
         this.nextAttempt = 0;
+        this.lastFailureTime = null;
+    }
+    
+    shouldAttemptReset() {
+        return this.lastFailureTime && 
+               (Date.now() - this.lastFailureTime) >= this.resetTimeout;
     }
     
     updateAverageResponseTime(duration) {
@@ -173,9 +202,40 @@ class CircuitBreaker {
             ((this.metrics.averageResponseTime * (totalResponses - 1)) + duration) / totalResponses;
     }
     
+    updateResponseTimeHistory(responseTime) {
+        const history = this.metrics.responseTimeHistory;
+        history.push(responseTime);
+        
+        // Keep only last 100 response times
+        if (history.length > 100) {
+            history.shift();
+        }
+    }
+    
+    async runHealthCheck() {
+        try {
+            const isHealthy = await this.healthCheck();
+            if (!isHealthy && this.state === STATES.CLOSED) {
+                cbLogger.warn(`Health check failed for circuit breaker '${this.name}'`);
+                this.failureCount++;
+                if (this.failureCount >= this.failureThreshold) {
+                    this.trip();
+                }
+            } else if (isHealthy && this.state === STATES.OPEN && this.shouldAttemptReset()) {
+                this.state = STATES.HALF_OPEN;
+                cbLogger.info(`Circuit breaker '${this.name}' transitioning to HALF_OPEN after health check`);
+            }
+            return isHealthy;
+        } catch (error) {
+            cbLogger.error(`Health check error for circuit breaker '${this.name}'`, { error: error.message });
+            return false;
+        }
+    }
+    
     getMetrics() {
         const now = Date.now();
         const uptime = now - this.metrics.lastResetTime;
+        const totalRequests = this.metrics.totalRequests;
         
         return {
             circuitBreaker: this.name,
@@ -187,17 +247,24 @@ class CircuitBreaker {
             metrics: {
                 ...this.metrics,
                 uptime: uptime,
-                successRate: this.metrics.totalRequests > 0 
-                    ? (this.metrics.successfulRequests / this.metrics.totalRequests * 100).toFixed(2) + '%'
+                successRate: totalRequests > 0 
+                    ? (this.metrics.successfulRequests / totalRequests * 100).toFixed(2) + '%'
+                    : '100%',
+                failureRate: totalRequests > 0 
+                    ? (this.metrics.failedRequests / totalRequests * 100).toFixed(2) + '%'
                     : '0%',
-                failureRate: this.metrics.totalRequests > 0 
-                    ? (this.metrics.failedRequests / this.metrics.totalRequests * 100).toFixed(2) + '%'
-                    : '0%'
+                averageResponseTime: Math.round(this.metrics.averageResponseTime)
             }
         };
     }
     
     startMonitoring() {
+        // Health check interval
+        setInterval(async () => {
+            await this.runHealthCheck();
+        }, 30000); // Every 30 seconds
+        
+        // Metrics monitoring and reset
         setInterval(() => {
             const metrics = this.getMetrics();
             
@@ -216,8 +283,28 @@ class CircuitBreaker {
             successfulRequests: 0,
             failedRequests: 0,
             rejectedRequests: 0,
+            timeouts: 0,
+            circuitOpenings: 0,
             averageResponseTime: 0,
+            responseTimeHistory: [],
             lastResetTime: Date.now()
+        };
+    }
+    
+    // Express middleware factory
+    static middleware(name, operation, options = {}) {
+        const breaker = getCircuitBreaker(name, options);
+        
+        return async (req, res, next) => {
+            try {
+                await breaker.execute(
+                    () => operation(req, res),
+                    options.fallback ? () => options.fallback(req, res) : null
+                );
+                next();
+            } catch (error) {
+                next(error);
+            }
         };
     }
 }
@@ -225,8 +312,8 @@ class CircuitBreaker {
 // Global circuit breaker registry
 const circuitBreakers = new Map();
 
-// Circuit breaker middleware factory
-const createCircuitBreaker = (name, options = {}) => {
+// Get or create circuit breaker
+const getCircuitBreaker = (name, options = {}) => {
     if (!circuitBreakers.has(name)) {
         circuitBreakers.set(name, new CircuitBreaker(name, options));
     }
@@ -234,9 +321,12 @@ const createCircuitBreaker = (name, options = {}) => {
     return circuitBreakers.get(name);
 };
 
+// Alias for backward compatibility
+const createCircuitBreaker = getCircuitBreaker;
+
 // Express middleware for circuit breaker
 const circuitBreakerMiddleware = (name, options = {}) => {
-    const cb = createCircuitBreaker(name, options);
+    const cb = getCircuitBreaker(name, options);
     
     return async (req, res, next) => {
         const operation = () => {
@@ -334,10 +424,23 @@ const getCircuitBreakerHealth = () => {
     return health;
 };
 
+// Get all metrics
+const getAllMetrics = () => {
+    const metrics = {};
+    for (const [name, breaker] of circuitBreakers) {
+        metrics[name] = breaker.getMetrics();
+    }
+    return metrics;
+};
+
 module.exports = {
     CircuitBreaker,
     createCircuitBreaker,
+    getCircuitBreaker,
     circuitBreakerMiddleware,
     getCircuitBreakerHealth,
+    getAllMetrics,
+    middleware: CircuitBreaker.middleware,
     STATES
 };
+```
