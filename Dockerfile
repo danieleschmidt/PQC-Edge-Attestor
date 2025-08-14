@@ -260,8 +260,8 @@ USER nodejs
 # Metadata and labels
 # =============================================================================
 LABEL maintainer="Terragon Labs <dev@terragonlabs.com>" \
-      org.opencontainers.image.title="PQC-Edge-Attestor" \
-      org.opencontainers.image.description="Post-quantum cryptographic framework for IoT edge device attestation" \
+      org.opencontainers.image.title="PQC-Edge-Attestor Generation 3" \
+      org.opencontainers.image.description="Generation 3: Scalable post-quantum cryptographic framework for IoT edge device attestation" \
       org.opencontainers.image.version="1.0.0" \
       org.opencontainers.image.vendor="Terragon Labs" \
       org.opencontainers.image.licenses="Apache-2.0" \
@@ -271,4 +271,11 @@ LABEL maintainer="Terragon Labs <dev@terragonlabs.com>" \
       security.scan="enabled" \
       security.updates="automated" \
       build.automated="true" \
-      build.target="production"
+      build.target="production" \
+      generation="3" \
+      scalability.horizontal="true" \
+      caching.multi-tier="true" \
+      load-balancing="intelligent" \
+      auto-scaling="reactive" \
+      performance.optimized="true" \
+      quantum.resistant="true"

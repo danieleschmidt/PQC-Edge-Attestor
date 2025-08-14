@@ -1,3 +1,4 @@
+```javascript
 /**
  * @file jest.config.js
  * @brief Jest testing configuration for PQC-Edge-Attestor
@@ -148,7 +149,19 @@ module.exports = {
   
   // Reporters
   reporters: [
-    'default'
+    'default',
+    [
+      'jest-junit',
+      {
+        outputDirectory: './test-reports',
+        outputName: 'junit.xml',
+        suiteName: 'PQC-Edge-Attestor Tests',
+        classNameTemplate: '{classname}',
+        titleTemplate: '{title}',
+        ancestorSeparator: ' › ',
+        usePathForSuiteName: true
+      }
+    ]
   ],
   
   // Watch mode configuration
@@ -229,3 +242,4 @@ module.exports = {
   // Timing
   slowTestThreshold: 5
 };
+```

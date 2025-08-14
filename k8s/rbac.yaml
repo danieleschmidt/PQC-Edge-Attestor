@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pqc-attestor-service-account
+  namespace: pqc-attestor
+  labels:
+    app: pqc-edge-attestor
+    generation: "3"
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pqc-attestor-role
+  namespace: pqc-attestor
+  labels:
+    app: pqc-edge-attestor
+    generation: "3"
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pqc-attestor-role-binding
+  namespace: pqc-attestor
+  labels:
+    app: pqc-edge-attestor
+    generation: "3"
+subjects:
+- kind: ServiceAccount
+  name: pqc-attestor-service-account
+  namespace: pqc-attestor
+roleRef:
+  kind: Role
+  name: pqc-attestor-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pqc-attestor-cluster-role
+  labels:
+    app: pqc-edge-attestor
+    generation: "3"
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "nodes/metrics"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pqc-attestor-cluster-role-binding
+  labels:
+    app: pqc-edge-attestor
+    generation: "3"
+subjects:
+- kind: ServiceAccount
+  name: pqc-attestor-service-account
+  namespace: pqc-attestor
+roleRef:
+  kind: ClusterRole
+  name: pqc-attestor-cluster-role
+  apiGroup: rbac.authorization.k8s.io

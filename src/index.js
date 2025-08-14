@@ -34,6 +34,11 @@ const {
 } = require('./middleware/optimization');
 const { quantumAcceleration, getAccelerationMetrics } = require('./middleware/quantumAcceleration');
 const { advancedQuantumDefense } = require('./middleware/advancedQuantumDefense');
+const { getCircuitBreaker } = require('./middleware/circuitBreaker');
+const { healthCheckManager, healthEndpoint, readinessEndpoint, livenessEndpoint } = require('./middleware/healthCheck');
+const { loadBalancer, autoScaler } = require('./middleware/loadBalancer');
+const { cacheManager } = require('./middleware/caching');
+const { performance } = require('./middleware/performanceOptimization');
 
 // Import services
 const NotificationService = require('./services/notificationService');
@@ -85,6 +90,7 @@ app.set('trust proxy', 1);
 
 // Essential middleware (order matters!)
 app.use(generateRequestId);
+app.use(performance.requestTimer()); // Generation 3: Performance timing
 app.use(requestOptimization);
 app.use(performanceMonitoring);
 app.use(httpMetricsMiddleware);
@@ -122,6 +128,7 @@ app.use(cors(corsOptions));
 
 // Smart compression middleware
 app.use(smartCompression);
+app.use(performance.adaptiveCompression()); // Generation 3: Adaptive compression
 
 // Content type validation
 app.use(validateContentType(['application/json', 'multipart/form-data']));
@@ -145,8 +152,17 @@ app.use(connectionPooling);
 // Content optimization
 app.use(contentOptimization);
 
-// Response caching (for GET requests)
-app.use(responseCache({ ttl: 300 }));
+// Response caching (for GET requests) - Generation 3: Advanced multi-tier caching
+app.use(cacheManager.responseCache({ 
+  cacheName: 'api-responses',
+  ttl: 300000,
+  shouldCache: (req) => {
+    // Cache GET requests for non-sensitive endpoints
+    return req.method === 'GET' && 
+           !req.path.includes('/health') &&
+           !req.path.includes('/metrics');
+  }
+}));
 
 // Audit logging
 app.use(auditLog);
@@ -191,17 +207,59 @@ app.get('/', (req, res) => {
 // Health check routes
 app.use('/health', healthRoutes);
 
+// Enhanced health endpoints for Generation 2
+app.get('/health/live', livenessEndpoint());
+app.get('/health/ready', readinessEndpoint());
+app.get('/health/detailed', healthEndpoint());
+
 // Metrics endpoint
 app.get('/metrics', asyncHandler(getMetrics));
 
-// Optimization metrics endpoint
+// Generation 3: Enhanced metrics and monitoring endpoints
 app.get('/api/v1/optimization/metrics', (req, res) => {
   res.json({
     success: true,
     data: {
       ...getOptimizationMetrics(),
-      quantumAcceleration: getAccelerationMetrics()
+      quantumAcceleration: getAccelerationMetrics(),
+      performance: performance.getPerformanceMetrics(),
+      cache: cacheManager.getAllStats(),
+      loadBalancer: loadBalancer.getLoadBalancerMetrics(),
+      autoScaler: autoScaler.getScalingMetrics()
     },
+    timestamp: new Date().toISOString(),
+    requestId: req.id
+  });
+});
+
+// Performance metrics endpoint
+app.get('/api/v1/performance', (req, res) => {
+  res.json({
+    success: true,
+    data: performance.getPerformanceMetrics(),
+    timestamp: new Date().toISOString(),
+    requestId: req.id
+  });
+});
+
+// Cache management endpoints
+app.get('/api/v1/cache/stats', (req, res) => {
+  res.json({
+    success: true,
+    data: cacheManager.getAllStats(),
+    timestamp: new Date().toISOString(),
+    requestId: req.id
+  });
+});
+
+app.delete('/api/v1/cache/:cacheName', (req, res) => {
+  const { cacheName } = req.params;
+  const cache = cacheManager.getCache(cacheName);
+  const cleared = cache.clear();
+  
+  res.json({
+    success: true,
+    data: { cacheName, itemsCleared: cleared },
     timestamp: new Date().toISOString(),
     requestId: req.id
   });
@@ -275,6 +333,14 @@ const gracefulShutdown = async (signal) => {
       logger.warn('Research cleanup failed', { error: error.message });
     }
     
+    // Cleanup Generation 3 resources
+    try {
+      performance.destroy();
+      cacheManager.destroy();
+    } catch (error) {
+      logger.warn('Generation 3 cleanup failed', { error: error.message });
+    }
+    
     // Close database connections, cleanup resources, etc.
     process.exit(0);
   });
@@ -288,16 +354,40 @@ const gracefulShutdown = async (signal) => {
 
 // Initialize services
 async function initializeServices() {
-  logger.info('Initializing services...');
+  logger.info('Initializing Generation 3 services...');
   
   try {
-    // Initialize attestation service with fallback
+    // Initialize circuit breakers for critical services
+    const dbBreaker = getCircuitBreaker('database', {
+      failureThreshold: 3,
+      timeout: 5000,
+      resetTimeout: 30000,
+      healthCheck: async () => {
+        // Database health check
+        try {
+          // Add actual database connection test here
+          return true;
+        } catch {
+          return false;
+        }
+      }
+    });
+
+    const apiBreaker = getCircuitBreaker('external-api', {
+      failureThreshold: 5,
+      timeout: 10000,
+      resetTimeout: 60000
+    });
+
+    // Initialize attestation service with circuit breaker protection
     try {
       const AttestationService = require('./services/attestationService');
-      const attestationService = new AttestationService();
-      if (typeof attestationService.initialize === 'function') {
-        await attestationService.initialize();
-      }
+      await dbBreaker.execute(async () => {
+        const attestationService = new AttestationService();
+        if (typeof attestationService.initialize === 'function') {
+          await attestationService.initialize();
+        }
+      });
     } catch (error) {
       logger.warn('Attestation service initialization skipped', { error: error.message });
     }
@@ -305,8 +395,49 @@ async function initializeServices() {
     // Test notification channels
     const testResults = await notificationService.testChannels(['slack']);
     logger.info('Notification channel test results', testResults);
+
+    // Register custom health checks
+    healthCheckManager.registerCheck('notification-service', async () => {
+      const stats = notificationService.getNotificationStats();
+      if (stats.failureRate > 50) {
+        throw new Error(`High notification failure rate: ${stats.failureRate}%`);
+      }
+      return { status: 'healthy', details: stats };
+    }, { critical: false, tags: ['notification'] });
+
+    // Generation 3: Advanced service registration and scaling
+    loadBalancer.registerService('pqc-service', [
+      {
+        id: 'pqc-1',
+        weight: 1,
+        healthCheck: async () => true // Add actual health check
+      }
+    ]);
+
+    // Configure auto-scaling policies
+    autoScaler.addScalingPolicy('pqc-service', {
+      minInstances: 1,
+      maxInstances: 5,
+      targetUtilization: 70,
+      scaleUpThreshold: 80,
+      scaleDownThreshold: 30
+    });
+
+    // Create specialized caches
+    cacheManager.createCache('crypto-operations', {
+      maxSize: 500,
+      defaultTTL: 600000 // 10 minutes for crypto operations
+    });
+
+    cacheManager.createCache('research-results', {
+      maxSize: 100,
+      defaultTTL: 3600000 // 1 hour for research results
+    });
+
+    // Run initial health check
+    await healthCheckManager.runAllChecks();
     
-    logger.info('All services initialized successfully');
+    logger.info('All Generation 3 services initialized successfully');
     return true;
   } catch (error) {
     logger.error('Service initialization failed', { error: error.message });
@@ -333,19 +464,30 @@ async function startServer() {
 
   const PORT = process.env.PORT || 3000;
   const server = app.listen(PORT, () => {
-    logger.info('PQC-Edge-Attestor server started', {
+    logger.info('PQC-Edge-Attestor Generation 3 server started', {
       port: PORT,
       environment: process.env.NODE_ENV || 'development',
       apiVersion: 'v1',
       pid: process.pid,
+      generation: 3,
       features: {
-        monitoring: true,
-        notifications: true,
-        security: 'enhanced',
-        optimization: 'auto-scaling',
-        caching: 'intelligent',
-        compression: 'adaptive',
-        generation: 3
+        monitoring: 'comprehensive',
+        notifications: 'multi-channel',
+        security: 'quantum-resistant',
+        optimization: 'adaptive',
+        caching: 'multi-tier',
+        compression: 'dynamic',
+        loadBalancing: 'intelligent',
+        autoScaling: 'reactive',
+        circuitBreakers: 'distributed',
+        healthChecks: 'proactive',
+        performance: 'real-time-optimized'
+      },
+      scalability: {
+        horizontalScaling: true,
+        loadBalancing: true,
+        caching: 'multi-tier',
+        workerPools: true
       }
     });
     
@@ -353,11 +495,11 @@ async function startServer() {
     notificationService.sendNotification(
       'system',
       ['slack', 'webhook'],
-      `PQC-Edge-Attestor server started successfully on port ${PORT}`,
+      `PQC-Edge-Attestor Generation 3 server started successfully on port ${PORT}`,
       { 
         priority: 'low', 
-        subject: 'Server Startup',
-        data: { port: PORT, generation: 2 }
+        subject: 'Generation 3 Server Startup',
+        data: { port: PORT, generation: 3, scalable: true }
       }
     );
   });

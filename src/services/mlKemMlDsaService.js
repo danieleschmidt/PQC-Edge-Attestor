@@ -18,7 +18,7 @@ const mlLogger = winston.createLogger({
   level: 'debug',
   format: winston.format.combine(
     winston.format.timestamp(),
-    winston.format.errors({ stack: true }),
+    winston.format.prettyPrint(),
     winston.format.json()
   ),
   defaultMeta: { service: 'ml-kem-ml-dsa' },

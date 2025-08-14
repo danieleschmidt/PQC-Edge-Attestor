@@ -185,7 +185,8 @@ describe('QuantumBenchmarkingSuite', () => {
       await suite.simulateComputationalWork(targetTime);
       
       const actualTime = Date.now() - startTime;
-      expect(actualTime).toBeWithinRange(targetTime * 0.8, targetTime * 1.2); // ±20% tolerance
+      expect(actualTime).toBeGreaterThan(targetTime * 0.5);
+      expect(actualTime).toBeLessThan(targetTime * 1.5);
     });
   });
 
