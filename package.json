@@ -1,4 +1,3 @@
-```json
 {
   "name": "pqc-edge-attestor",
   "version": "1.0.0",
@@ -160,4 +159,3 @@
     }
   }
 }
-```
