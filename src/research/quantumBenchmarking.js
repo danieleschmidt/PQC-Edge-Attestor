@@ -50,7 +50,7 @@ class StatisticalAnalyzer {
         const mean = data.reduce((sum, val) => sum + val, 0) / n;
         
         // Variance and standard deviation
-        const variance = data.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (n - 1);
+        const variance = n === 1 ? 0 : data.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (n - 1);
         const stdDev = Math.sqrt(variance);
         
         // Percentiles
