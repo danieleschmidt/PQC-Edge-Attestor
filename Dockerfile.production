@@ -1,0 +1,103 @@
+# Multi-stage production Dockerfile for PQC-Edge-Attestor
+# Optimized for security, performance, and minimal attack surface
+
+# Stage 1: Build stage
+FROM node:18-alpine AS builder
+
+# Install build dependencies and security updates
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+        python3 \
+        make \
+        g++ \
+        git \
+        openssl \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user for build
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S pqc -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY --chown=pqc:nodejs . .
+
+# Install dependencies and build
+RUN npm ci --only=production --ignore-scripts && \
+    npm cache clean --force && \
+    npm run build || true
+
+# Remove development dependencies and clean up
+RUN npm prune --production && \
+    rm -rf node_modules/.cache && \
+    rm -rf /tmp/* /var/tmp/* && \
+    find /app -name "*.test.js" -delete && \
+    find /app -name "*.spec.js" -delete
+
+# Stage 2: Runtime stage
+FROM node:18-alpine AS runtime
+
+# Install runtime dependencies and security updates
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+        dumb-init \
+        openssl \
+        ca-certificates \
+        curl \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S pqc -u 1001 -G nodejs
+
+# Create application directories
+RUN mkdir -p /app/logs /app/security-reports /app/research_output && \
+    chown -R pqc:nodejs /app
+
+# Set working directory
+WORKDIR /app
+
+# Copy application from builder stage
+COPY --from=builder --chown=pqc:nodejs /app .
+
+# Create logs directory structure
+RUN mkdir -p logs/{app,security,research,monitoring} && \
+    chown -R pqc:nodejs logs/
+
+# Set file permissions
+RUN chmod -R 755 /app && \
+    chmod -R 750 logs/ && \
+    chmod +x scripts/*.js 2>/dev/null || true
+
+# Switch to non-root user
+USER pqc
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV LOG_LEVEL=info
+ENV PROCESS_TYPE=web
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
+# Start the application
+CMD ["node", "src/index.js"]
+
+# Metadata
+LABEL maintainer="Terragon Labs <dev@terragonlabs.com>"
+LABEL description="PQC-Edge-Attestor production container"
+LABEL version="1.0.0"
+LABEL org.opencontainers.image.source="https://github.com/terragonlabs/PQC-Edge-Attestor"
+LABEL org.opencontainers.image.documentation="https://github.com/terragonlabs/PQC-Edge-Attestor/blob/main/README.md"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
