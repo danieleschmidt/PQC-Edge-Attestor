@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pqc-attestor
+  labels:
+    name: pqc-attestor
+    app: pqc-edge-attestor
+    generation: "3"
+    security.level: high
+    quantum.resistant: "true"
+  annotations:
+    description: "PQC-Edge-Attestor Generation 3 - Quantum-resistant IoT security framework"
+    maintainer: "Terragon Labs <dev@terragonlabs.com>"
+    version: "1.0.0"

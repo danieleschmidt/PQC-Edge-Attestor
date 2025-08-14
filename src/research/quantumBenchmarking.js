@@ -50,7 +50,8 @@ class StatisticalAnalyzer {
         const mean = data.reduce((sum, val) => sum + val, 0) / n;
         
         // Variance and standard deviation
-        const variance = data.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (n - 1);
+        const variance = n > 1 ? 
+            data.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (n - 1) : 0;
         const stdDev = Math.sqrt(variance);
         
         // Percentiles
@@ -527,7 +528,8 @@ class QuantumBenchmarkingSuite {
         }
         
         // Compare verification if both have data
-        if (result1.rawMetrics.verification.length > 0 && result2.rawMetrics.verification.length > 0) {
+        if (result1.rawMetrics.verification && result1.rawMetrics.verification.length > 0 && 
+            result2.rawMetrics.verification && result2.rawMetrics.verification.length > 0) {
             comparison.verification = this.statisticalAnalyzer.welchTTest(
                 result1.rawMetrics.verification,
                 result2.rawMetrics.verification

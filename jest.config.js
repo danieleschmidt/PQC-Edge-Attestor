@@ -160,16 +160,6 @@ module.exports = {
         ancestorSeparator: ' › ',
         usePathForSuiteName: true
       }
-    ],
-    [
-      'jest-html-reporters',
-      {
-        publicPath: './test-reports',
-        filename: 'report.html',
-        expand: true,
-        hideIcon: false,
-        pageTitle: 'PQC-Edge-Attestor Test Report'
-      }
     ]
   ],
   
@@ -222,9 +212,7 @@ module.exports = {
   },
   
   // Snapshot configuration
-  snapshotSerializers: [
-    'jest-serializer-json'
-  ],
+  snapshotSerializers: [],
   
   // Dependencies to force into CommonJS
   forceExit: false,
@@ -248,10 +236,7 @@ module.exports = {
   testSequencer: '@jest/test-sequencer',
   
   // Watch plugins
-  watchPlugins: [
-    'jest-watch-typeahead/filename',
-    'jest-watch-typeahead/testname'
-  ],
+  watchPlugins: [],
   
   // Timing
   slowTestThreshold: 5
