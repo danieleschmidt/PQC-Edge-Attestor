@@ -1,4 +1,3 @@
-```javascript
 /**
  * @file circuitBreaker.js
  * @brief Advanced circuit breaker implementation for Generation 2 reliability
@@ -443,4 +442,3 @@ module.exports = {
     middleware: CircuitBreaker.middleware,
     STATES
 };
-```

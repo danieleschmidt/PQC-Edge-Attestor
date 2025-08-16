@@ -1,4 +1,3 @@
-```javascript
 /**
  * @file quantumBenchmarking.js
  * @brief Advanced quantum cryptography benchmarking and research framework
@@ -1086,4 +1085,3 @@ module.exports = {
     QuantumBenchmarkingSuite,
     StatisticalAnalyzer
 };
-```

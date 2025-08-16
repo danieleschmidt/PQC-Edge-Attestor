@@ -1,4 +1,3 @@
-```javascript
 /**
  * @file jest.config.js
  * @brief Jest testing configuration for PQC-Edge-Attestor
@@ -242,4 +241,3 @@ module.exports = {
   // Timing
   slowTestThreshold: 5
 };
-```
