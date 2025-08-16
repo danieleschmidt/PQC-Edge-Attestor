@@ -1,164 +1,233 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="PQC-Edge-Attestor Tests" tests="74" failures="2" errors="0" time="3.247">
-  <testsuite name="StatisticalAnalyzer" errors="0" failures="1" skipped="0" timestamp="2025-08-14T11:56:59" time="2.034" tests="27">
-    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="calculates correct statistics for normal dataset" time="0.008">
+<testsuites name="PQC-Edge-Attestor Tests" tests="74" failures="0" errors="0" time="2.468">
+  <testsuite name="QuantumAcceleratedOptimizer" errors="0" failures="0" skipped="26" timestamp="2025-08-16T12:16:34" time="0.236" tests="26">
+    <testcase classname="QuantumAcceleratedOptimizer › constructor" name="initializes with default configuration" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="handles single value dataset" time="0.003">
+    <testcase classname="QuantumAcceleratedOptimizer › constructor" name="initializes quantum components" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="throws error for empty dataset" time="0.068">
+    <testcase classname="QuantumAcceleratedOptimizer › generateAnnealingSchedule" name="generates valid annealing schedule" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="throws error for non-array input" time="0.003">
+    <testcase classname="QuantumAcceleratedOptimizer › extractOptimizationParameters" name="extracts comprehensive parameter set" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="StatisticalAnalyzer › calculateSkewness" name="calculates skewness correctly" time="0.003">
+    <testcase classname="QuantumAcceleratedOptimizer › initializeQuantumPopulation" name="initializes population with quantum superposition" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="StatisticalAnalyzer › welchTTest" name="performs Welch&apos;s t-test correctly" time="0.004">
+    <testcase classname="QuantumAcceleratedOptimizer › initializeQuantumPopulation" name="applies constraints correctly" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › constructor" name="initializes with default configuration" time="0.003">
+    <testcase classname="QuantumAcceleratedOptimizer › measurePerformance" name="measures performance with different configurations" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › constructor" name="accepts custom configuration" time="0.002">
+    <testcase classname="QuantumAcceleratedOptimizer › measurePerformance" name="shows performance improvement with optimizations" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › generateKyberKeyPair" name="generates valid Kyber keypair" time="0.005">
+    <testcase classname="QuantumAcceleratedOptimizer › measureEnergyEfficiency" name="measures energy efficiency correctly" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › generateDilithiumKeyPair" name="generates valid Dilithium keypair" time="0.03">
+    <testcase classname="QuantumAcceleratedOptimizer › measureEnergyEfficiency" name="shows better efficiency with hardware acceleration" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › measureKeyGeneration" name="measures key generation performance" time="0.005">
+    <testcase classname="QuantumAcceleratedOptimizer › calculateFitness" name="calculates fitness score correctly" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › measureKeyGeneration" name="includes memory usage when profiling enabled" time="0.005">
+    <testcase classname="QuantumAcceleratedOptimizer › quantumTournament" name="performs quantum tournament selection" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › measureSigning" name="measures signing performance for Dilithium" time="0.029">
+    <testcase classname="QuantumAcceleratedOptimizer › calculateQuantumInterference" name="calculates interference pattern" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › measureSigning" name="measures signing performance for Falcon" time="0.112">
+    <testcase classname="QuantumAcceleratedOptimizer › quantumRecombination" name="performs quantum recombination" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › simulateComputationalWork" name="simulates work for specified duration" time="0.009">
-      <failure>TypeError: expect(...).toBeWithinRange is not a function
-    at Object.toBeWithinRange (/root/repo/tests/unit/research/quantumBenchmarking.test.js:188:26)
-    at processTicksAndRejections (node:internal/process/task_queues:105:5)</failure>
+    <testcase classname="QuantumAcceleratedOptimizer › quantumTunneling" name="performs quantum tunneling mutation" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › calculatePerformanceScore" name="calculates performance score correctly" time="0.01">
+    <testcase classname="QuantumAcceleratedOptimizer › calculateHammingDistance" name="calculates normalized Hamming distance" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › calculatePerformanceScore" name="returns lower score for slower operations" time="0.002">
+    <testcase classname="QuantumAcceleratedOptimizer › getOptimizationRecommendations" name="provides recommendations for different use cases" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › getSecurityLevel" name="returns correct security levels" time="0.002">
+    <testcase classname="EnergyOptimizer › constructor" name="initializes with configuration" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › assessQuantumResistance" name="assesses quantum resistance for known algorithms" time="0.002">
+    <testcase classname="EnergyOptimizer › applyVoltageScaling" name="applies voltage scaling optimization" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › assessQuantumResistance" name="returns unknown for unrecognized algorithms" time="0.002">
+    <testcase classname="EnergyOptimizer › applyFrequencyScaling" name="applies frequency scaling based on workload" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › getEnvironmentMetadata" name="returns environment information" time="0.005">
+    <testcase classname="EnergyOptimizer › applySleepOptimization" name="optimizes sleep modes effectively" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › benchmarkAlgorithm" name="benchmarks algorithm successfully" time="0.091">
+    <testcase classname="EnergyOptimizer › assessWorkloadIntensity" name="assesses workload intensity correctly" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › benchmarkAlgorithm" name="handles signing algorithms correctly" time="0.282">
+    <testcase classname="EnergyOptimizer › estimateIdleTime" name="estimates idle time based on workload" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › compareAlgorithmPair" name="compares two algorithm results" time="0.003">
+    <testcase classname="EnergyOptimizer › measureEnergyConsumption" name="measures energy consumption for different workloads" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › generateOptimizationRecommendations" name="generates recommendations based on results" time="0.003">
+    <testcase classname="Integration tests" name="full optimization workflow" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › error handling" name="handles unsupported algorithm gracefully" time="0.003">
-    </testcase>
-    <testcase classname="Integration tests" name="full benchmarking workflow" time="0.054">
-    </testcase>
-  </testsuite>
-  <testsuite name="StatisticalAnalyzer" errors="0" failures="1" skipped="0" timestamp="2025-08-14T11:57:01" time="0.261" tests="13">
-    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="calculates correct statistics for normal dataset" time="0.003">
-    </testcase>
-    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="handles single value dataset" time="0.002">
-    </testcase>
-    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="throws error for empty dataset" time="0.046">
-    </testcase>
-    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="throws error for non-array input" time="0.003">
-    </testcase>
-    <testcase classname="StatisticalAnalyzer › welchTTest" name="performs Welch&apos;s t-test correctly" time="0.003">
-    </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › constructor" name="initializes with default configuration" time="0.002">
-    </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › constructor" name="accepts custom configuration" time="0.002">
-    </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › generateKyberKeyPair" name="generates valid Kyber keypair" time="0.01">
-    </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › simulateComputationalWork" name="simulates work for specified duration" time="0.008">
-      <failure>TypeError: expect(...).toBeWithinRange is not a function
-    at Object.toBeWithinRange (/root/repo/tests/unit/research/quantumBenchmarking.fixed.test.js:122:26)</failure>
-    </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › compareAlgorithmPair" name="compares two algorithm results" time="0.004">
-    </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › benchmarkAlgorithm" name="benchmarks algorithm successfully" time="0.046">
-    </testcase>
-    <testcase classname="QuantumBenchmarkingSuite › getSecurityLevel" name="returns correct security levels" time="0.002">
-    </testcase>
-    <testcase classname="Integration tests" name="full benchmarking workflow" time="0.031">
+    <testcase classname="Integration tests" name="energy optimization workflow" time="0">
+      <skipped/>
     </testcase>
   </testsuite>
-  <testsuite name="QuantumAcceleratedOptimizer" errors="0" failures="0" skipped="0" timestamp="2025-08-14T11:57:01" time="0.156" tests="26">
-    <testcase classname="QuantumAcceleratedOptimizer › constructor" name="initializes with default configuration" time="0.003">
+  <testsuite name="QuantumAcceleratedOptimizer" errors="0" failures="0" skipped="8" timestamp="2025-08-16T12:16:34" time="0.051" tests="8">
+    <testcase classname="QuantumAcceleratedOptimizer › constructor" name="initializes with default configuration" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › constructor" name="initializes quantum components" time="0.002">
+    <testcase classname="QuantumAcceleratedOptimizer › constructor" name="initializes quantum components" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › generateAnnealingSchedule" name="generates valid annealing schedule" time="0.017">
+    <testcase classname="QuantumAcceleratedOptimizer › measurePerformance" name="measures performance with different configurations" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › extractOptimizationParameters" name="extracts comprehensive parameter set" time="0.003">
+    <testcase classname="QuantumAcceleratedOptimizer › calculateFitness" name="calculates fitness score correctly" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › initializeQuantumPopulation" name="initializes population with quantum superposition" time="0.007">
+    <testcase classname="EnergyOptimizer › constructor" name="initializes with configuration" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › initializeQuantumPopulation" name="applies constraints correctly" time="0.004">
+    <testcase classname="EnergyOptimizer › applyVoltageScaling" name="applies voltage scaling optimization" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › measurePerformance" name="measures performance with different configurations" time="0.003">
+    <testcase classname="EnergyOptimizer › assessWorkloadIntensity" name="assesses workload intensity correctly" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › measurePerformance" name="shows performance improvement with optimizations" time="0.002">
-    </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › measureEnergyEfficiency" name="measures energy efficiency correctly" time="0.002">
-    </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › measureEnergyEfficiency" name="shows better efficiency with hardware acceleration" time="0.006">
-    </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › calculateFitness" name="calculates fitness score correctly" time="0.002">
-    </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › quantumTournament" name="performs quantum tournament selection" time="0.002">
-    </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › calculateQuantumInterference" name="calculates interference pattern" time="0.001">
-    </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › quantumRecombination" name="performs quantum recombination" time="0.002">
-    </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › quantumTunneling" name="performs quantum tunneling mutation" time="0.002">
-    </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › calculateHammingDistance" name="calculates normalized Hamming distance" time="0.002">
-    </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › getOptimizationRecommendations" name="provides recommendations for different use cases" time="0.003">
-    </testcase>
-    <testcase classname="EnergyOptimizer › constructor" name="initializes with configuration" time="0.002">
-    </testcase>
-    <testcase classname="EnergyOptimizer › applyVoltageScaling" name="applies voltage scaling optimization" time="0.002">
-    </testcase>
-    <testcase classname="EnergyOptimizer › applyFrequencyScaling" name="applies frequency scaling based on workload" time="0.001">
-    </testcase>
-    <testcase classname="EnergyOptimizer › applySleepOptimization" name="optimizes sleep modes effectively" time="0.002">
-    </testcase>
-    <testcase classname="EnergyOptimizer › assessWorkloadIntensity" name="assesses workload intensity correctly" time="0.002">
-    </testcase>
-    <testcase classname="EnergyOptimizer › estimateIdleTime" name="estimates idle time based on workload" time="0.001">
-    </testcase>
-    <testcase classname="EnergyOptimizer › measureEnergyConsumption" name="measures energy consumption for different workloads" time="0.001">
-    </testcase>
-    <testcase classname="Integration tests" name="full optimization workflow" time="0.008">
-    </testcase>
-    <testcase classname="Integration tests" name="energy optimization workflow" time="0.003">
+    <testcase classname="Integration tests" name="energy optimization workflow" time="0">
+      <skipped/>
     </testcase>
   </testsuite>
-  <testsuite name="QuantumAcceleratedOptimizer" errors="0" failures="0" skipped="0" timestamp="2025-08-14T11:57:01" time="0.069" tests="8">
-    <testcase classname="QuantumAcceleratedOptimizer › constructor" name="initializes with default configuration" time="0.003">
+  <testsuite name="StatisticalAnalyzer" errors="0" failures="0" skipped="27" timestamp="2025-08-16T12:16:36" time="0.077" tests="27">
+    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="calculates correct statistics for normal dataset" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › constructor" name="initializes quantum components" time="0.002">
+    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="handles single value dataset" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › measurePerformance" name="measures performance with different configurations" time="0.002">
+    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="throws error for empty dataset" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="QuantumAcceleratedOptimizer › calculateFitness" name="calculates fitness score correctly" time="0.001">
+    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="throws error for non-array input" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="EnergyOptimizer › constructor" name="initializes with configuration" time="0.004">
+    <testcase classname="StatisticalAnalyzer › calculateSkewness" name="calculates skewness correctly" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="EnergyOptimizer › applyVoltageScaling" name="applies voltage scaling optimization" time="0.002">
+    <testcase classname="StatisticalAnalyzer › welchTTest" name="performs Welch&apos;s t-test correctly" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="EnergyOptimizer › assessWorkloadIntensity" name="assesses workload intensity correctly" time="0.002">
+    <testcase classname="QuantumBenchmarkingSuite › constructor" name="initializes with default configuration" time="0">
+      <skipped/>
     </testcase>
-    <testcase classname="Integration tests" name="energy optimization workflow" time="0.002">
+    <testcase classname="QuantumBenchmarkingSuite › constructor" name="accepts custom configuration" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › generateKyberKeyPair" name="generates valid Kyber keypair" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › generateDilithiumKeyPair" name="generates valid Dilithium keypair" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › measureKeyGeneration" name="measures key generation performance" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › measureKeyGeneration" name="includes memory usage when profiling enabled" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › measureSigning" name="measures signing performance for Dilithium" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › measureSigning" name="measures signing performance for Falcon" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › simulateComputationalWork" name="simulates work for specified duration" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › calculatePerformanceScore" name="calculates performance score correctly" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › calculatePerformanceScore" name="returns lower score for slower operations" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › getSecurityLevel" name="returns correct security levels" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › assessQuantumResistance" name="assesses quantum resistance for known algorithms" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › assessQuantumResistance" name="returns unknown for unrecognized algorithms" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › getEnvironmentMetadata" name="returns environment information" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › benchmarkAlgorithm" name="benchmarks algorithm successfully" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › benchmarkAlgorithm" name="handles signing algorithms correctly" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › compareAlgorithmPair" name="compares two algorithm results" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › generateOptimizationRecommendations" name="generates recommendations based on results" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › error handling" name="handles unsupported algorithm gracefully" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="Integration tests" name="full benchmarking workflow" time="0">
+      <skipped/>
+    </testcase>
+  </testsuite>
+  <testsuite name="StatisticalAnalyzer" errors="0" failures="0" skipped="13" timestamp="2025-08-16T12:16:36" time="0.098" tests="13">
+    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="calculates correct statistics for normal dataset" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="handles single value dataset" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="throws error for empty dataset" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="StatisticalAnalyzer › calculateDescriptiveStats" name="throws error for non-array input" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="StatisticalAnalyzer › welchTTest" name="performs Welch&apos;s t-test correctly" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › constructor" name="initializes with default configuration" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › constructor" name="accepts custom configuration" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › generateKyberKeyPair" name="generates valid Kyber keypair" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › simulateComputationalWork" name="simulates work for specified duration" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › compareAlgorithmPair" name="compares two algorithm results" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › benchmarkAlgorithm" name="benchmarks algorithm successfully" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="QuantumBenchmarkingSuite › getSecurityLevel" name="returns correct security levels" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="Integration tests" name="full benchmarking workflow" time="0">
+      <skipped/>
     </testcase>
   </testsuite>
 </testsuites>
