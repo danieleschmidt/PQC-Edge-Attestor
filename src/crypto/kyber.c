@@ -20,6 +20,7 @@
 #define KYBER_ETA2 2
 #define KYBER_DU 11
 #define KYBER_DV 5
+#define KYBER_QINV 62209
 
 // Polynomial arithmetic constants
 static const uint16_t zetas[128] = {

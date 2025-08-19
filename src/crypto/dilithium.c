@@ -26,6 +26,7 @@
 #define DILITHIUM_Q 8380417
 #define DILITHIUM_D 13
 #define DILITHIUM_ROOT_OF_UNITY 1753
+#define DILITHIUM_QINV 58728449
 
 // Precomputed constants for NTT
 static const uint32_t zetas[256] = {
