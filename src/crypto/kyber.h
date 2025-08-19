@@ -39,7 +39,7 @@ typedef struct {
  * @brief Kyber secret key structure  
  */
 typedef struct {
-    uint8_t s[KYBER_K * KYBER_N * 12 / 8];  /**< Secret polynomial s */
+    uint8_t s[4 * 256 * 12 / 8];  /**< Secret polynomial s (using constants directly) */
     kyber_public_key_t pk;                   /**< Associated public key */
     uint8_t h[32];                           /**< Hash of public key */
     uint8_t z[32];                           /**< Random value for implicit rejection */
@@ -49,8 +49,8 @@ typedef struct {
  * @brief Kyber ciphertext structure
  */
 typedef struct {
-    uint8_t u[KYBER_K * KYBER_N * 11 / 8];  /**< Compressed polynomial u */
-    uint8_t v[KYBER_N * 5 / 8];             /**< Compressed polynomial v */
+    uint8_t u[4 * 256 * 11 / 8];  /**< Compressed polynomial u (using constants directly) */
+    uint8_t v[256 * 5 / 8];             /**< Compressed polynomial v (using constants directly) */
 } kyber_ciphertext_t;
 
 /**

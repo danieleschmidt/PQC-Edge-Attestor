@@ -1,207 +1,97 @@
+# Production Docker Compose configuration for PQC Edge Attestor
+# TERRAGON SDLC Generation 4 - Production deployment
+
 version: '3.8'
 
 services:
+  # Main PQC Edge Attestor Application
   pqc-attestor:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    image: terragonlabs/pqc-edge-attestor:latest
-    container_name: pqc-attestor-prod
+      args:
+        NODE_ENV: production
+    image: terragon/pqc-edge-attestor:latest
+    container_name: pqc-attestor-main
     restart: unless-stopped
+    ports:
+      - "8443:8443"  # HTTPS only in production
     environment:
       - NODE_ENV=production
-      - PORT=3000
       - LOG_LEVEL=info
-      - ENABLE_SWAGGER=false
-      - CORS_ORIGINS=${CORS_ORIGINS}
-      - JWT_SECRET=${JWT_SECRET}
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - QUANTUM_HSM_URL=${QUANTUM_HSM_URL}
-      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
-      - PAGERDUTY_API_KEY=${PAGERDUTY_API_KEY}
-      - SMTP_HOST=${SMTP_HOST}
-      - ALERT_EMAIL_FROM=${ALERT_EMAIL_FROM}
-      - ALERT_EMAIL_TO=${ALERT_EMAIL_TO}
-    ports:
-      - "3000:3000"
+      - ENABLE_OPTIMIZATION=true
+      - ENABLE_MULTI_REGION=true
+      - ENABLE_I18N=true
+      - COMPLIANCE_MODE=strict
+      - SECURITY_LEVEL=5
+      - PRIMARY_REGION=${PRIMARY_REGION:-us-east-1}
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://pqcuser:${DB_PASSWORD}@postgres:5432/pqc_attestor
     volumes:
+      - ./config/production.json:/app/config/production.json:ro
       - ./logs:/app/logs
-      - ./certs:/app/certs:ro
-      - pqc-data:/app/data
-    networks:
-      - pqc-network
+      - ./data/certificates:/app/certificates:ro
+      - attestor_data:/app/data
     depends_on:
       - redis
       - postgres
       - prometheus
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    deploy:
-      resources:
-        limits:
-          memory: 1GB
-          cpus: '1'
-        reservations:
-          memory: 512MB
-          cpus: '0.5'
-
-  postgres:
-    image: postgres:15-alpine
-    container_name: pqc-postgres-prod
-    restart: unless-stopped
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB:-pqc_attestor}
-      - POSTGRES_USER=${POSTGRES_USER:-pqc_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - pqc-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pqc_user}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "curl", "-f", "https://localhost:8443/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
+  # Redis Cache
   redis:
-    image: redis:7-alpine
-    container_name: pqc-redis-prod
+    image: redis:7.2-alpine
+    container_name: pqc-redis
     restart: unless-stopped
+    ports:
+      - "6379:6379"
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
-      - redis-data:/data
-      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis_data:/data
     networks:
       - pqc-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
 
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: pqc-prometheus-prod
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: pqc-postgres
     restart: unless-stopped
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.enable-lifecycle'
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=pqc_attestor
+      - POSTGRES_USER=pqcuser
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     volumes:
-      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus-data:/prometheus
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pqc-network
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: pqc-prometheus
+    restart: unless-stopped
     ports:
       - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
     networks:
       - pqc-network
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: pqc-grafana-prod
-    restart: unless-stopped
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SECURITY_COOKIE_SECURE=true
-      - GF_SECURITY_COOKIE_SAMESITE=strict
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources
-    ports:
-      - "3001:3000"
-    networks:
-      - pqc-network
-    depends_on:
-      - prometheus
-
-  nginx:
-    image: nginx:alpine
-    container_name: pqc-nginx-prod
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./config/nginx/ssl:/etc/nginx/ssl:ro
-      - ./logs/nginx:/var/log/nginx
-    networks:
-      - pqc-network
-    depends_on:
-      - pqc-attestor
-
-  quantum-hsm-simulator:
-    build:
-      context: ./quantum-hsm
-      dockerfile: Dockerfile
-    image: terragonlabs/quantum-hsm:latest
-    container_name: pqc-quantum-hsm-prod
-    restart: unless-stopped
-    environment:
-      - HSM_MODE=production
-      - HSM_KEY_DERIVATION=quantum_safe
-    volumes:
-      - hsm-keys:/hsm/keys
-      - ./config/hsm:/hsm/config:ro
-    networks:
-      - pqc-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  backup:
-    image: postgres:15-alpine
-    container_name: pqc-backup-prod
-    restart: unless-stopped
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_DB=${POSTGRES_DB:-pqc_attestor}
-      - POSTGRES_USER=${POSTGRES_USER:-pqc_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - BACKUP_SCHEDULE=${BACKUP_SCHEDULE:-0 2 * * *}
-      - S3_BUCKET=${BACKUP_S3_BUCKET}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-    volumes:
-      - ./scripts/backup.sh:/backup.sh
-      - backup-data:/backups
-    networks:
-      - pqc-network
-    depends_on:
-      - postgres
-    command: ["sh", "-c", "while true; do sleep 86400; done"]
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  attestor_data:
 
 networks:
   pqc-network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
-
-volumes:
-  postgres-data:
-    driver: local
-  redis-data:
-    driver: local
-  prometheus-data:
-    driver: local
-  grafana-data:
-    driver: local
-  pqc-data:
-    driver: local
-  hsm-keys:
-    driver: local
-  backup-data:
-    driver: local
