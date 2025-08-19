@@ -107,8 +107,9 @@ module.exports = {
   // Test timeout
   testTimeout: 30000,
   
-  // Parallel execution
-  maxWorkers: '50%',
+  // Parallel execution - Limited for memory optimization
+  maxWorkers: 1,
+  workerIdleMemoryLimit: '512MB',
   
   // Verbose output
   verbose: true,
@@ -215,9 +216,10 @@ module.exports = {
   snapshotSerializers: [],
   
   // Dependencies to force into CommonJS
-  forceExit: false,
+  forceExit: true,
   detectOpenHandles: true,
   detectLeaks: false,
+  logHeapUsage: true,
   
   // Cache configuration
   cache: true,
