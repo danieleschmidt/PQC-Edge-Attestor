@@ -1,0 +1,66 @@
+{
+  "app": {
+    "name": "PQC-Edge-Attestor",
+    "description": "用于物联网边缘设备认证的后量子密码学框架",
+    "version": "第四代"
+  },
+  "security": {
+    "quantum_resistant": "量子抗性安全已启用",
+    "attestation_success": "设备认证成功",
+    "attestation_failed": "设备认证失败",
+    "key_generation": "正在生成量子安全密钥",
+    "encryption_algorithm": "ML-KEM加密算法",
+    "signature_algorithm": "ML-DSA签名算法",
+    "certificate_valid": "证书有效且量子安全",
+    "certificate_expired": "证书已过期",
+    "tpm_healthy": "TPM模块健康",
+    "tpm_error": "检测到TPM模块错误"
+  },
+  "crypto": {
+    "kyber_1024": "Kyber-1024密钥封装",
+    "dilithium_5": "Dilithium-5数字签名",
+    "ml_kem_1024": "ML-KEM-1024密钥封装",
+    "ml_dsa_87": "ML-DSA-87数字签名",
+    "encryption_complete": "加密操作完成",
+    "decryption_complete": "解密操作完成",
+    "signing_complete": "数字签名已创建",
+    "verification_complete": "签名验证完成"
+  },
+  "errors": {
+    "invalid_input": "提供的输入无效",
+    "crypto_failure": "密码学操作失败",
+    "attestation_error": "认证过程错误",
+    "network_error": "网络通信错误",
+    "device_not_found": "未找到设备",
+    "unauthorized": "未授权访问",
+    "forbidden": "访问被禁止",
+    "internal_error": "内部服务器错误",
+    "rate_limit_exceeded": "速率限制超出",
+    "validation_failed": "输入验证失败"
+  },
+  "compliance": {
+    "gdpr_notice": "本服务符合GDPR数据保护要求",
+    "ccpa_notice": "本服务符合CCPA隐私法规",
+    "pdpa_notice": "本服务符合PDPA数据保护标准",
+    "data_processing": "您的数据使用量子抗性密码学安全处理",
+    "privacy_policy": "隐私政策",
+    "cookie_consent": "我们使用必要的cookie进行量子安全操作"
+  },
+  "performance": {
+    "optimization_active": "性能优化激活",
+    "cache_hit": "缓存命中 - 优化响应",
+    "load_balancing": "负载均衡激活",
+    "auto_scaling": "自动扩缩触发",
+    "circuit_breaker_open": "断路器保护激活",
+    "health_check_passed": "健康检查通过",
+    "memory_usage_normal": "内存使用在正常范围内"
+  },
+  "notifications": {
+    "device_provisioned": "设备配置成功",
+    "firmware_update_available": "固件更新可用",
+    "security_alert": "检测到安全警报",
+    "maintenance_scheduled": "维护已安排",
+    "backup_completed": "备份成功完成",
+    "system_restart": "需要系统重启"
+  }
+}

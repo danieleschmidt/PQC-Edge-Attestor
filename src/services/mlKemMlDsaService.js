@@ -25,8 +25,10 @@ const mlLogger = winston.createLogger({
     new winston.transports.File({ filename: 'logs/ml-standards.log' }),
     new winston.transports.Console({
       format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
+        winston.format.colorize ? winston.format.colorize() : winston.format.simple(),
+        winston.format.simple ? winston.format.simple() : winston.format.printf(info => 
+          `${info.timestamp} [${info.level}] ${info.message}`
+        )
       )
     })
   ]

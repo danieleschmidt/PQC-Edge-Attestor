@@ -61,7 +61,9 @@ const logger = winston.createLogger({
     new winston.transports.File({ filename: 'logs/pqc-error.log', level: 'error' }),
     new winston.transports.File({ filename: 'logs/pqc-combined.log' }),
     new winston.transports.Console({
-      format: winston.format.simple()
+      format: winston.format.simple ? winston.format.simple() : winston.format.printf(info => 
+        `${info.timestamp} [${info.level}] ${info.message}`
+      )
     })
   ]
 });
