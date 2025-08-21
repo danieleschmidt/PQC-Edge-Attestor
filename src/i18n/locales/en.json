@@ -1,0 +1,66 @@
+{
+  "app": {
+    "name": "PQC-Edge-Attestor",
+    "description": "Post-quantum cryptographic framework for IoT edge device attestation",
+    "version": "Generation 4"
+  },
+  "security": {
+    "quantum_resistant": "Quantum-resistant security enabled",
+    "attestation_success": "Device attestation successful",
+    "attestation_failed": "Device attestation failed",
+    "key_generation": "Generating quantum-safe keys",
+    "encryption_algorithm": "ML-KEM encryption algorithm",
+    "signature_algorithm": "ML-DSA signature algorithm",
+    "certificate_valid": "Certificate is valid and quantum-safe",
+    "certificate_expired": "Certificate has expired",
+    "tpm_healthy": "TPM module is healthy",
+    "tpm_error": "TPM module error detected"
+  },
+  "crypto": {
+    "kyber_1024": "Kyber-1024 Key Encapsulation",
+    "dilithium_5": "Dilithium-5 Digital Signature",
+    "ml_kem_1024": "ML-KEM-1024 Key Encapsulation",
+    "ml_dsa_87": "ML-DSA-87 Digital Signature",
+    "encryption_complete": "Encryption operation completed",
+    "decryption_complete": "Decryption operation completed",
+    "signing_complete": "Digital signature created",
+    "verification_complete": "Signature verification completed"
+  },
+  "errors": {
+    "invalid_input": "Invalid input provided",
+    "crypto_failure": "Cryptographic operation failed",
+    "attestation_error": "Attestation process error",
+    "network_error": "Network communication error",
+    "device_not_found": "Device not found",
+    "unauthorized": "Unauthorized access",
+    "forbidden": "Access forbidden",
+    "internal_error": "Internal server error",
+    "rate_limit_exceeded": "Rate limit exceeded",
+    "validation_failed": "Input validation failed"
+  },
+  "compliance": {
+    "gdpr_notice": "This service complies with GDPR data protection requirements",
+    "ccpa_notice": "This service complies with CCPA privacy regulations",
+    "pdpa_notice": "This service complies with PDPA data protection standards",
+    "data_processing": "Your data is processed securely using quantum-resistant cryptography",
+    "privacy_policy": "Privacy Policy",
+    "cookie_consent": "We use essential cookies for quantum-safe operations"
+  },
+  "performance": {
+    "optimization_active": "Performance optimization active",
+    "cache_hit": "Cache hit - optimized response",
+    "load_balancing": "Load balancing active",
+    "auto_scaling": "Auto-scaling triggered",
+    "circuit_breaker_open": "Circuit breaker protection active",
+    "health_check_passed": "Health check passed",
+    "memory_usage_normal": "Memory usage within normal limits"
+  },
+  "notifications": {
+    "device_provisioned": "Device successfully provisioned",
+    "firmware_update_available": "Firmware update available",
+    "security_alert": "Security alert detected",
+    "maintenance_scheduled": "Maintenance scheduled",
+    "backup_completed": "Backup completed successfully",
+    "system_restart": "System restart required"
+  }
+}

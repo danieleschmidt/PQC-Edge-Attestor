@@ -1,0 +1,66 @@
+{
+  "app": {
+    "name": "PQC-Edge-Attestor",
+    "description": "Framework criptográfico post-cuántico para certificación de dispositivos IoT edge",
+    "version": "Generación 4"
+  },
+  "security": {
+    "quantum_resistant": "Seguridad resistente a computación cuántica habilitada",
+    "attestation_success": "Certificación del dispositivo exitosa",
+    "attestation_failed": "Certificación del dispositivo falló",
+    "key_generation": "Generando claves cuántico-seguras",
+    "encryption_algorithm": "Algoritmo de cifrado ML-KEM",
+    "signature_algorithm": "Algoritmo de firma ML-DSA",
+    "certificate_valid": "El certificado es válido y cuántico-seguro",
+    "certificate_expired": "El certificado ha expirado",
+    "tpm_healthy": "Módulo TPM está saludable",
+    "tpm_error": "Error detectado en módulo TPM"
+  },
+  "crypto": {
+    "kyber_1024": "Encapsulación de Clave Kyber-1024",
+    "dilithium_5": "Firma Digital Dilithium-5",
+    "ml_kem_1024": "Encapsulación de Clave ML-KEM-1024",
+    "ml_dsa_87": "Firma Digital ML-DSA-87",
+    "encryption_complete": "Operación de cifrado completada",
+    "decryption_complete": "Operación de descifrado completada",
+    "signing_complete": "Firma digital creada",
+    "verification_complete": "Verificación de firma completada"
+  },
+  "errors": {
+    "invalid_input": "Entrada inválida proporcionada",
+    "crypto_failure": "Operación criptográfica falló",
+    "attestation_error": "Error en proceso de certificación",
+    "network_error": "Error de comunicación de red",
+    "device_not_found": "Dispositivo no encontrado",
+    "unauthorized": "Acceso no autorizado",
+    "forbidden": "Acceso prohibido",
+    "internal_error": "Error interno del servidor",
+    "rate_limit_exceeded": "Límite de velocidad excedido",
+    "validation_failed": "Validación de entrada falló"
+  },
+  "compliance": {
+    "gdpr_notice": "Este servicio cumple con los requisitos de protección de datos GDPR",
+    "ccpa_notice": "Este servicio cumple con las regulaciones de privacidad CCPA",
+    "pdpa_notice": "Este servicio cumple con los estándares de protección de datos PDPA",
+    "data_processing": "Sus datos se procesan de forma segura usando criptografía resistente a computación cuántica",
+    "privacy_policy": "Política de Privacidad",
+    "cookie_consent": "Usamos cookies esenciales para operaciones cuántico-seguras"
+  },
+  "performance": {
+    "optimization_active": "Optimización de rendimiento activa",
+    "cache_hit": "Acierto de caché - respuesta optimizada",
+    "load_balancing": "Balanceador de carga activo",
+    "auto_scaling": "Auto-escalado activado",
+    "circuit_breaker_open": "Protección de cortacircuitos activa",
+    "health_check_passed": "Verificación de salud pasada",
+    "memory_usage_normal": "Uso de memoria dentro de límites normales"
+  },
+  "notifications": {
+    "device_provisioned": "Dispositivo aprovisionado exitosamente",
+    "firmware_update_available": "Actualización de firmware disponible",
+    "security_alert": "Alerta de seguridad detectada",
+    "maintenance_scheduled": "Mantenimiento programado",
+    "backup_completed": "Respaldo completado exitosamente",
+    "system_restart": "Reinicio del sistema requerido"
+  }
+}
