@@ -1,0 +1,654 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: terragon-pqc-production
+  labels:
+    name: terragon-pqc-production
+    environment: production
+    version: generation-5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pqc-edge-attestor
+  namespace: terragon-pqc-production
+  labels:
+    app: pqc-edge-attestor
+    tier: application
+    version: generation-5
+spec:
+  replicas: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: pqc-edge-attestor
+  template:
+    metadata:
+      labels:
+        app: pqc-edge-attestor
+        tier: application
+        version: generation-5
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: pqc-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: pqc-edge-attestor
+        image: terragon/pqc-edge-attestor:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: PORT
+          value: "3000"
+        # Generation 5 Features
+        - name: THREAT_INTELLIGENCE_ENABLED
+          value: "true"
+        - name: ADAPTIVE_SECURITY_ENABLED
+          value: "true"
+        - name: AUTONOMOUS_PERFORMANCE_ENABLED
+          value: "true"
+        - name: QUANTUM_CLOUD_ENABLED
+          value: "true"
+        - name: ML_OPTIMIZATION_ENABLED
+          value: "true"
+        - name: QUANTUM_THREAT_PROTECTION
+          value: "true"
+        - name: REAL_TIME_MONITORING
+          value: "true"
+        - name: PREDICTIVE_SCALING
+          value: "true"
+        # Security Configuration
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: pqc-secrets
+              key: jwt-secret
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pqc-secrets
+              key: api-key
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pqc-secrets
+              key: encryption-key
+        - name: QUANTUM_PROVIDER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: pqc-secrets
+              key: quantum-provider-token
+        # Database Configuration
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: pqc-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: pqc-secrets
+              key: redis-url
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: pqc-logs
+          mountPath: /app/logs
+        - name: pqc-certs
+          mountPath: /app/certs
+          readOnly: true
+        - name: pqc-cache
+          mountPath: /app/cache
+      volumes:
+      - name: pqc-logs
+        persistentVolumeClaim:
+          claimName: pqc-logs-pvc
+      - name: pqc-certs
+        secret:
+          secretName: pqc-tls-certs
+      - name: pqc-cache
+        emptyDir:
+          sizeLimit: 1Gi
+      nodeSelector:
+        node-type: "application"
+      tolerations:
+      - key: "application"
+        operator: "Equal"
+        value: "pqc"
+        effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - pqc-edge-attestor
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pqc-edge-attestor-service
+  namespace: terragon-pqc-production
+  labels:
+    app: pqc-edge-attestor
+    tier: application
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3000
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  selector:
+    app: pqc-edge-attestor
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pqc-edge-attestor-ingress
+  namespace: terragon-pqc-production
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/rate-limit-connections: "100"
+    nginx.ingress.kubernetes.io/rate-limit-rps: "50"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://pqc.terragonlabs.com"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+spec:
+  tls:
+  - hosts:
+    - api.pqc.terragonlabs.com
+    secretName: pqc-tls-secret
+  rules:
+  - host: api.pqc.terragonlabs.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: pqc-edge-attestor-service
+            port:
+              number: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantum-simulator
+  namespace: terragon-pqc-production
+  labels:
+    app: quantum-simulator
+    tier: compute
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: quantum-simulator
+  template:
+    metadata:
+      labels:
+        app: quantum-simulator
+        tier: compute
+    spec:
+      containers:
+      - name: quantum-simulator
+        image: terragon/quantum-simulator:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: MAX_QUBITS
+          value: "64"
+        - name: SIMULATION_THREADS
+          value: "8"
+        - name: MEMORY_LIMIT
+          value: "8G"
+        - name: QUANTUM_NOISE_MODEL
+          value: "realistic"
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2000m"
+          limits:
+            memory: "8Gi"
+            cpu: "4000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        volumeMounts:
+        - name: quantum-cache
+          mountPath: /app/cache
+      volumes:
+      - name: quantum-cache
+        emptyDir:
+          sizeLimit: 2Gi
+      nodeSelector:
+        node-type: "compute"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quantum-simulator-service
+  namespace: terragon-pqc-production
+  labels:
+    app: quantum-simulator
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  selector:
+    app: quantum-simulator
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgresql
+  namespace: terragon-pqc-production
+  labels:
+    app: postgresql
+    tier: database
+spec:
+  serviceName: postgresql-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: postgresql
+  template:
+    metadata:
+      labels:
+        app: postgresql
+        tier: database
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+      - name: postgresql
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_DB
+          value: pqc_edge_attestor
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secret
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secret
+              key: password
+        - name: POSTGRES_REPLICATION_MODE
+          value: master
+        - name: POSTGRES_REPLICATION_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secret
+              key: replication-username
+        - name: POSTGRES_REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secret
+              key: replication-password
+        ports:
+        - containerPort: 5432
+          name: postgresql
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        volumeMounts:
+        - name: postgresql-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgresql-config
+          mountPath: /etc/postgresql
+          readOnly: true
+      volumes:
+      - name: postgresql-config
+        configMap:
+          name: postgresql-config
+  volumeClaimTemplates:
+  - metadata:
+      name: postgresql-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "fast-ssd"
+      resources:
+        requests:
+          storage: 100Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-headless
+  namespace: terragon-pqc-production
+  labels:
+    app: postgresql
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: postgresql
+    port: 5432
+    targetPort: 5432
+  selector:
+    app: postgresql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-service
+  namespace: terragon-pqc-production
+  labels:
+    app: postgresql
+spec:
+  type: ClusterIP
+  ports:
+  - name: postgresql
+    port: 5432
+    targetPort: 5432
+  selector:
+    app: postgresql
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: terragon-pqc-production
+  labels:
+    app: redis
+    tier: cache
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        tier: cache
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        command:
+        - redis-server
+        - /etc/redis/redis.conf
+        - --requirepass
+        - $(REDIS_PASSWORD)
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: password
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        volumeMounts:
+        - name: redis-config
+          mountPath: /etc/redis
+        - name: redis-data
+          mountPath: /data
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-config
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: redis-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: terragon-pqc-production
+  labels:
+    app: redis
+spec:
+  type: ClusterIP
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+  selector:
+    app: redis
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pqc-edge-attestor-hpa
+  namespace: terragon-pqc-production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pqc-edge-attestor
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Pods
+    pods:
+      metric:
+        name: quantum_jobs_per_second
+      target:
+        type: AverageValue
+        averageValue: "10"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pqc-edge-attestor-pdb
+  namespace: terragon-pqc-production
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: pqc-edge-attestor
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pqc-service-account
+  namespace: terragon-pqc-production
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pqc-role
+  namespace: terragon-pqc-production
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pqc-role-binding
+  namespace: terragon-pqc-production
+subjects:
+- kind: ServiceAccount
+  name: pqc-service-account
+  namespace: terragon-pqc-production
+roleRef:
+  kind: Role
+  name: pqc-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pqc-network-policy
+  namespace: terragon-pqc-production
+spec:
+  podSelector:
+    matchLabels:
+      app: pqc-edge-attestor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nginx-ingress
+    - podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 3000
+    - protocol: TCP
+      port: 9090
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgresql
+    ports:
+    - protocol: TCP
+      port: 5432
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  - to:
+    - podSelector:
+        matchLabels:
+          app: quantum-simulator
+    ports:
+    - protocol: TCP
+      port: 8080
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 443
