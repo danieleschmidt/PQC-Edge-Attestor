@@ -1,0 +1,9 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "pqc-edge-attestor"
+version = "1.0.0"
+description = "Post-Quantum Cryptography + Remote Attestation for IoT edge devices"
+requires-python = ">=3.9"
